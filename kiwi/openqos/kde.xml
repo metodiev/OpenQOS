@@ -1,0 +1,133 @@
+<!--
+  KDE Plasma desktop profiles.
+
+  The package set comes from Fedora's own KDE description
+  (upstream/components/desktops/kde.xml and upstream/teams/kde.xml). Deriving
+  from it rather than writing our own list is deliberate: that is where the real
+  engineering lives — the exclusions for packages that duplicate each other on a
+  KDE desktop, the comps groups that resolve the KDE install environment, and
+  the aarch64-only x86-emulation collection.
+
+  `OpenQOS-KDE` describes the desktop stack itself, kept separate from the image
+  profiles, so that a disk image and, later, live installation media can share
+  one package definition instead of two that drift apart.
+
+  Fedora-branded content, now that it has been checked against a real package
+  list rather than assumed:
+
+    mediawriter           Removed. Named explicitly by upstream's desktop baseline,
+                          which OpenQOS now owns as openqos/desktop-common.xml so
+                          the line can be dropped. See that file.
+    fedora-release-kde    Not installed, and never was: it is requested only by
+                          upstream's teams/*.xml, which we do not include.
+    plasma-welcome-fedora Not installed. Upstream ignores it for the KDE-Mobile
+                          profile; it is absent here because nothing requests it.
+    plasma-welcome        Installed, and left alone. This is upstream KDE's own
+                          welcome application, not Fedora branding.
+    fedora-logos          Installed, and cannot be removed: breeze-icon-theme and
+                          much else require it. Its files are Fedora's marks in
+                          Anaconda and favicon assets. OpenQOS does not reference
+                          any of them, and ships openqos-logo instead.
+    */etc/*-release       Installed: system-release, redhat-release and
+                          fedora-release are one symlink chain owned by
+                          fedora-release-common, and they name the Fedora *base*.
+                          os-release, which every modern tool reads, is ours. See
+                          docs/architecture.md for why these are left truthful
+                          about the base rather than overridden.
+-->
+<image>
+	<profiles>
+		<profile name="OpenQOS-KDE" description="KDE Plasma desktop stack">
+			<requires profile="KDE-Desktop"/>
+		</profile>
+		<profile name="OpenQOS-KDE-Disk" description="OpenQOS KDE Plasma pre-installed disk image (aarch64, UEFI)">
+			<requires profile="OpenQOS-Disk"/>
+			<requires profile="OpenQOS-KDE"/>
+		</profile>
+		<!--
+		  Live installation media.
+
+		  This requires `LiveInstall` rather than Fedora's own `KDE-Desktop-Live`,
+		  even though the two are equivalent in content: `KDE-Desktop-Live` carries
+		  Fedora's `fedora-release-kde` bootstrap and `plasma-welcome-fedora`, and
+		  it would leave `OpenQOS-KDE` inactive, so our own configuration would not
+		  be applied to the live image at all.
+
+		  The medium's identity is ours too, but not from here. It cannot be set
+		  in this file: Preferences attach to every profile in the active set,
+		  including required ones, so adding a second <type image="iso"> for this
+		  build is a hard error. scripts/build-image.sh passes the volume label,
+		  publisher and application id with KIWI's set-type-attr option instead,
+		  which is also how Fedora's own ISO label generator sets them.
+		-->
+		<profile name="OpenQOS-KDE-Live" description="OpenQOS KDE Plasma live installation media (aarch64, UEFI)">
+			<requires profile="OpenQOS-Base"/>
+			<requires profile="OpenQOS-KDE"/>
+			<requires profile="LiveInstall"/>
+		</profile>
+	</profiles>
+
+	<!--
+	  livesys-scripts is what creates the live-media account and autologin at boot,
+	  driven by /etc/sysconfig/livesys which kiwi/config.sh writes. Fedora's own
+	  config.sh is not executed for OpenQOS images, so this is ours to do.
+	-->
+	<packages type="iso" patternType="plusRecommended" profiles="OpenQOS-KDE-Live">
+		<package name="livesys-scripts"/>
+	</packages>
+
+	<!--
+	  Installation media: the installer integration and the installer's own
+	  product profile.
+
+	  Both belong to live media and not to disk images. The package pulls in
+	  Anaconda, which a pre-installed image has no use for, and the profile
+	  configures an installer the disk images do not carry. Anaconda itself
+	  arrives through upstream's `LiveInstall` profile, which the live profile
+	  requires; upstream's own comment on it is "The point of a live image is to
+	  install".
+
+	  The kickstart that an installation actually uses is inside the package
+	  (packages/openqos-installer), sourced from kickstart/openqos.ks.
+	-->
+	<packages type="image" patternType="plusRecommended" profiles="OpenQOS-KDE-Live">
+		<package name="openqos-installer"/>
+		<file name="staged-openqos.conf" target="/etc/anaconda/profile.d/openqos.conf"/>
+	</packages>
+
+	<!--
+	  Desktop configuration, shipped onto the image.
+
+	  KIWI resolves `name` relative to the *description* directory, so
+	  scripts/build-image.sh stages the repository's config/ tree into kiwi/ as a
+	  symlink. That keeps one source of truth for these files instead of a copy
+	  that drifts.
+
+	  The preview images are what the System Settings global-theme picker shows.
+	  They are a scaled crop of our own wallpaper rather than a screenshot of a
+	  running desktop — this build environment has no virtual GPU, so there is
+	  nothing to photograph yet. Replacing them with real screenshots is on the
+	  roadmap; showing a blank preview until then would be worse.
+	-->
+	<packages type="image" patternType="plusRecommended" profiles="OpenQOS-KDE">
+		<file name="staged-kdeglobals" target="/etc/xdg/kdeglobals"/>
+		<file name="staged-mimeapps.list" target="/etc/xdg/mimeapps.list"/>
+		<file name="staged-metadata.json" target="/usr/share/plasma/look-and-feel/org.openqos.desktop/metadata.json"/>
+		<file name="staged-defaults" target="/usr/share/plasma/look-and-feel/org.openqos.desktop/contents/defaults"/>
+		<file name="staged-org.kde.plasma.desktop-layout.js" target="/usr/share/plasma/look-and-feel/org.openqos.desktop/contents/layouts/org.kde.plasma.desktop-layout.js"/>
+		<file name="staged-preview.png" target="/usr/share/plasma/look-and-feel/org.openqos.desktop/contents/previews/preview.png"/>
+		<file name="staged-fullscreenpreview.jpg" target="/usr/share/plasma/look-and-feel/org.openqos.desktop/contents/previews/fullscreenpreview.jpg"/>
+
+		<!--
+		  Login screen. Both files replace one shipped by a Fedora package, and both
+		  are the hook their own upstream documents for a distribution:
+		  /usr/lib/plasmalogin/defaults.conf is where Plasma Login says a distro sets
+		  a default wallpaper, and /etc/xdg/plasmasetuprc is where Plasma Setup says
+		  a distro sets first-boot policy. A user's own /etc/plasmalogin.conf still
+		  overrides ours, which is the point of using the documented hook rather
+		  than the user's file.
+		-->
+		<file name="staged-defaults.conf" target="/usr/lib/plasmalogin/defaults.conf"/>
+		<file name="staged-plasmasetuprc" target="/etc/xdg/plasmasetuprc"/>
+	</packages>
+</image>

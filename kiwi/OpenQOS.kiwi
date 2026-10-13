@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  OpenQOS Linux — root image description.
+
+  This is the primary build path. See docs/architecture.md for why KIWI and not
+  kickstart, and docs/roadmap.md for what each milestone adds.
+
+  Everything in this directory outside `upstream/` is ours. `upstream/` is
+  Fedora's own description set, fetched at the revision pinned in
+  kiwi/upstream.lock rather than vendored here, so the delta stays reviewable.
+
+  To build, run `scripts/build-image.sh` from the repository root, inside the
+  Fedora development VM. It requires root, because KIWI creates and mounts disk
+  images. That script also writes the build manifest with artefact checksums.
+  The exact KIWI invocation is in the script; it is deliberately written in one
+  place rather than duplicated here.
+
+  Fedora's own `kiwi-build` wrapper is not used: it derives ISO bundle metadata
+  from Fedora profile names, which do not apply to ours.
+-->
+
+<image schemaversion="7.4" name="OpenQOS">
+	<description type="system">
+		<author>OpenQOS contributors</author>
+		<contact>https://github.com/metodiev/OpenQOS</contact>
+		<specification>OpenQOS Linux</specification>
+	</description>
+
+	<!--
+	  `version` sets $releasever, which is what resolves the Fedora metalink URLs
+	  in upstream/repositories/core.xml. It must match the Fedora release you are
+	  building from, or the repositories will not resolve.
+	-->
+	<preferences>
+		<version>44</version>
+		<packagemanager>dnf5</packagemanager>
+		<locale>en_US</locale>
+		<keytable>us</keytable>
+		<timezone>UTC</timezone>
+		<release-version>44</release-version>
+	</preferences>
+
+	<!-- Fedora's repositories, base package sets and boot handling, pinned. -->
+	<include from="this://./upstream/repositories/core.xml"/>
+	<include from="this://./upstream/components/common.xml"/>
+	<include from="this://./upstream/components/boot.xml"/>
+	<!--
+	  Note what is *not* here: upstream/components/desktops/common.xml. OpenQOS
+	  owns that file instead (openqos/desktop-common.xml) so that Fedora Media
+	  Writer is not installed; see the comment in that file for why, and
+	  tests/check-upstream-drift.sh for how the divergence stays visible. The
+	  `DesktopCommon` profile name is unchanged, so upstream's desktops/kde.xml
+	  still resolves against it.
+	-->
+	<include from="this://./openqos/desktop-common.xml"/>
+	<include from="this://./upstream/components/desktops/kde.xml"/>
+	<include from="this://./upstream/components/liveinstall.xml"/>
+	<include from="this://./upstream/teams/kde.xml"/>
+
+	<!-- OpenQOS profiles and image types. -->
+	<include from="this://./openqos/base.xml"/>
+	<include from="this://./openqos/disk.xml"/>
+	<include from="this://./openqos/kde.xml"/>
+	<include from="this://./openqos/test.xml"/>
+
+	<!--
+	  The bootstrap root. `filesystem` is all KIWI needs to create the tree, but
+	  it pulls basesystem -> fedora-release -> fedora-release-common, and that
+	  requires the virtual name `fedora-release-identity` at a version. With no
+	  profile naming a flavour, dnf satisfied it with `fedora-release-identity-
+	  basic` here, before any image package was considered.
+
+	  That mattered because KIWI reads <ignore> per packages *section type*, not
+	  per profile: the ignore in openqos/base.xml is in an `image` section and
+	  had no effect on the bootstrap transaction. A flavour installed during
+	  bootstrap then conflicts with openqos-release for the rest of the build.
+	  So the family is excluded here as well, in the section that actually
+	  installs it.
+	-->
+	<packages type="bootstrap">
+		<package name="filesystem"/>
+		<ignore name="fedora-release-identity-*"/>
+	</packages>
+</image>

@@ -1,0 +1,13 @@
+# Pinned revision of Fedora's KIWI image descriptions.
+#
+# OpenQOS derives from Fedora's descriptions rather than vendoring them, so that
+# the difference between the two stays visible and upstream fixes can be taken
+# deliberately instead of by accident.
+#
+# Read by scripts/fetch-upstream-descriptions.sh.
+# Refresh with: scripts/fetch-upstream-descriptions.sh --update-lock
+
+fedora_release=44
+upstream_branch=f44
+upstream_commit=dfc49a5a10f69941179fdadd96aa6a5984f7c677
+upstream_date=2026-04-01

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OpenQOS installer on the live desktop
+Comment=Install the OpenQOS launcher icon when running from live media
+Exec=/usr/libexec/openqos/openqos-install-setup
+Terminal=false
+# Nothing to show if it fails: this is a live session putting one icon in place,
+# and a failure leaves the desktop without an installer rather than broken.
+X-GNOME-Autostart-enabled=true

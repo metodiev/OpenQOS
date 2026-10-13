@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+	<!--
+	  OpenQOS mark — primary version, for light backgrounds.
+	  See openqos-mark-inverse.svg for the version for dark backgrounds.
+
+	  An open ring with a tail: a "Q" drawn as geometry rather than as a
+	  letterform, so it stays legible down to 16px and needs no font.
+
+	    ring   a circle broken by a 90-degree gap in the lower right
+	    tail   a round-capped stroke through the gap, so the ring reads as Q
+	    core   a diamond at the centre; at small sizes it collapses to a dot,
+	           which is why it is sized to survive that
+
+	  The ring is an explicit arc path, not a circle with stroke-dasharray. A
+	  dashed circle is hard to reason about: the dash pattern starts at the
+	  circle's own start point and travels in a direction that depends on the
+	  assumption being made about the y axis, which in SVG points down. Written
+	  as an arc, the gap is simply the sector the path does not cover.
+
+	    centre (128,128), radius 88
+	    start  (128,216)  = 90 degrees, straight down
+	    end    (216,128)  =  0 degrees, straight right
+	    large-arc-flag 1  = the long way round
+	    sweep-flag     1  = increasing angle, which on screen is clockwise
+	  so the path runs down -> left -> up -> right, leaving the lower-right
+	  quadrant open, which is where a Q's tail belongs.
+
+	  See PROVENANCE.md for authorship and licensing.
+	-->
+	<title>OpenQOS</title>
+	<g fill="none">
+		<path d="M 128 216 A 88 88 0 1 1 216 128" stroke="#2f4a66" stroke-width="26"/>
+		<path d="M 166 166 L 202 202" stroke="#4c6e96" stroke-width="26" stroke-linecap="round"/>
+	</g>
+	<path d="M 128 106 L 150 128 L 128 150 L 106 128 Z" fill="#101a25"/>
+</svg>

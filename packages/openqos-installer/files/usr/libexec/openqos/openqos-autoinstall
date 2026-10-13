@@ -1,0 +1,123 @@
+#!/bin/bash
+#
+# Unattended installation, started by openqos-autoinstall.service on live media.
+#
+# Two ways to ask for one, and the second is the older convention:
+#
+#   1. inst.ks= on the kernel command line. Fedora's own media honour this, and so
+#      does this one, with one difference worth stating: Fedora's media start
+#      Anaconda from the initramfs (they install anaconda-dracut), while this
+#      medium does not — Anaconda lives in the live filesystem — so the request is
+#      honoured here, in the live session, before the desktop starts.
+#
+#        inst.ks=/path/to/ks.cfg            a file that is already readable
+#        inst.ks=file:///path/to/ks.cfg     the same thing, with a scheme
+#        inst.ks=hd:LABEL=OEMDRV:/ks.cfg    a kickstart on another disk (or a stick)
+#
+#   2. A disk labelled OEMDRV holding /ks.cfg, with nothing on the command line.
+#      This is Anaconda's own convention for unattended installations and it is
+#      what Fedora's media honour without any boot option. Disks labelled OEMDRV
+#      are ignored as installation targets by Anaconda itself
+#      (pyanaconda/ui/lib/storage.py), so a stick holding a kickstart cannot be
+#      wiped by the installation it describes.
+#
+# With neither, this script exits without touching anything: an unattended
+# installation is only ever what somebody asked for.
+#
+# Not handled: http://, https:// and nfs: kickstarts. Fetching those needs the
+# network up and a URL implementation, and Anaconda's own fetching lives in the
+# dracut module this medium deliberately does without.
+# See docs/architecture.md §4.7.
+#
+set -euo pipefail
+
+# There is deliberately no default kickstart here. The interactive installer uses
+# /usr/share/openqos/kickstart/openqos.ks; an unattended run has to name its own,
+# on the command line or on an OEMDRV disk, because a machine that wipes its disks
+# should not be able to do so by accident.
+readonly staged_kickstart=/run/install/ks.cfg
+
+# The unit sets this; running the script by hand does not. Anaconda reads it
+# unconditionally at startup and raises TypeError when it is unset.
+if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+	export XDG_RUNTIME_DIR=/run/openqos-autoinstall
+	mkdir -p -- "${XDG_RUNTIME_DIR}"
+	chmod 0700 -- "${XDG_RUNTIME_DIR}"
+fi
+
+# Copy a kickstart off a device named by a kickstart device specification into
+# the path Anaconda looks for one that something else has already fetched:
+# /run/install/ks.cfg. That is where dracut leaves it on Fedora's media, and
+# Anaconda picks it up from there by itself.
+stage_from_device() {
+	local device="$1"
+	local path="$2"
+	local mount_point
+
+	mount_point="$(mktemp -d)"
+	echo "openqos-autoinstall: reading the kickstart from ${device}:${path}"
+	mount -o ro -- "${device}" "${mount_point}"
+	mkdir -p -- "$(dirname -- "${staged_kickstart}")"
+	install -m 0644 -- "${mount_point}/${path#/}" "${staged_kickstart}"
+	umount -- "${mount_point}"
+	rmdir -- "${mount_point}"
+}
+
+kickstart=""
+
+# 1. An explicit request on the command line.
+read -r -a kernel_arguments < /proc/cmdline
+for argument in "${kernel_arguments[@]}"; do
+	[[ "${argument}" == inst.ks=* ]] || continue
+	requested="${argument#inst.ks=}"
+
+	case "${requested}" in
+	hd:*)
+		spec="${requested#hd:}"
+		stage_from_device "${spec%%:*}" "${spec#*:}"
+		# Anaconda finds /run/install/ks.cfg by itself, and a kickstart named
+		# on the command line would take precedence over it.
+		;;
+	file://*)
+		kickstart="${requested#file://}"
+		;;
+	*)
+		kickstart="${requested}"
+		;;
+	esac
+done
+
+# 2. A kickstart on a disk labelled OEMDRV, which is how Anaconda's own media are
+#    asked to install with no boot option at all.
+if [[ -z "${kickstart}" && ! -f "${staged_kickstart}" && -e /dev/disk/by-label/OEMDRV ]]; then
+	mount_point="$(mktemp -d)"
+	if mount -o ro -- /dev/disk/by-label/OEMDRV "${mount_point}" 2>/dev/null; then
+		if [[ -f "${mount_point}/ks.cfg" ]]; then
+			umount -- "${mount_point}"
+			rmdir -- "${mount_point}"
+			stage_from_device /dev/disk/by-label/OEMDRV /ks.cfg
+		else
+			umount -- "${mount_point}"
+			rmdir -- "${mount_point}"
+			echo "openqos-autoinstall: OEMDRV has no /ks.cfg, ignoring it"
+		fi
+	else
+		rmdir -- "${mount_point}"
+		echo "openqos-autoinstall: OEMDRV could not be mounted, ignoring it"
+	fi
+fi
+
+if [[ -f "${staged_kickstart}" ]]; then
+	echo "openqos-autoinstall: installing unattended from ${staged_kickstart}"
+	exec anaconda --noninteractive
+fi
+
+if [[ -n "${kickstart}" ]]; then
+	echo "openqos-autoinstall: installing unattended, kickstart ${kickstart}"
+	exec anaconda --noninteractive --ks="${kickstart}"
+fi
+
+echo "openqos-autoinstall: nothing asked for an unattended installation; it is"
+echo "openqos-autoinstall: requested with inst.ks= on the kernel command line or"
+echo "openqos-autoinstall: with a disk labelled OEMDRV holding /ks.cfg"
+exit 0

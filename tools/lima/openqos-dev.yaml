@@ -1,0 +1,101 @@
+# OpenQOS development VM
+#
+# An aarch64 Fedora 44 virtual machine used to BUILD OpenQOS images.
+#
+# Why a VM: no Fedora image-building tool (kiwi, lorax, livemedia-creator,
+# image-builder) runs on macOS, and aarch64 media can only be produced on an
+# aarch64 host. The Mac is used to edit files and run Git; this VM does the
+# building.
+#
+# Usage, from the repository root on macOS:
+#
+#   limactl validate tools/lima/openqos-dev.yaml     # syntax check, no VM created
+#   limactl start --name=openqos-dev tools/lima/openqos-dev.yaml
+#   limactl shell openqos-dev
+#
+# If your checkout is not at the path in `mounts` below, either edit that line
+# or override it at creation time:
+#
+#   limactl start --name=openqos-dev \
+#     --set='.mounts[1].location = "/absolute/path/to/your/checkout"' \
+#     tools/lima/openqos-dev.yaml
+
+minimumLimaVersion: 2.0.0
+
+# Native virtualisation through Apple's Virtualization.framework. The guest is
+# aarch64 and so is this Mac, so this is hardware acceleration, not emulation.
+vmType: vz
+arch: aarch64
+
+# Sized for a 16 GiB Apple Silicon host. The VM takes 8 GiB and leaves ~8 GiB
+# for macOS. Do not run a second heavy VM (for example colima) at the same time.
+cpus: 6
+memory: "8GiB"
+disk: "120GiB"
+
+# Fedora 44 Cloud Base Generic, aarch64.
+#
+# The URL and digest are taken from Fedora's PGP-signed checksum file
+# Fedora-Cloud-44-1.7-aarch64-CHECKSUM. Lima verifies the digest before the
+# first boot, so a corrupted or substituted download fails loudly.
+images:
+- location: "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-44-1.7.aarch64.qcow2"
+  arch: aarch64
+  digest: "sha256:55c60a3b80d3616a08705afd0459e75fe9f03c54aba7a46e4002a41a72fa0d5b"
+
+mounts:
+# Host home directory, read-only: lets you read host files from inside the VM
+# without exposing them to accidental writes.
+- location: "~"
+  writable: false
+# The OpenQOS checkout, writable, so build tooling runs directly against the
+# working tree you are editing on macOS. No file copying or Git round-trips.
+- location: "{{.Home}}/Documents/workspace/OpenQOS/OpenQOS"
+  writable: true
+
+# Fedora 43 and 44 authenticate SSH over AF_VSOCK, where an SELinux policy
+# denial breaks the connection (lima-vm/lima#4334). Lima's own Fedora
+# templates disable it; we do the same and use TCP forwarding instead.
+ssh:
+  overVsock: false
+
+# Runs once, on first boot, as root. Everything installed here was checked to
+# exist in the Fedora 44 aarch64 repository.
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    # Keep downloaded RPMs on the guest's large disk rather than re-fetching
+    # them on every build. Harmless if it fails.
+    dnf config-manager setopt keepcache=1 || true
+
+    dnf install -y \
+      kiwi-cli \
+      kiwi-systemdeps-core \
+      kiwi-systemdeps-filesystems \
+      kiwi-systemdeps-bootloaders \
+      kiwi-systemdeps-iso-media \
+      kiwi-systemdeps-image-validation \
+      dracut-kiwi-live \
+      distribution-gpg-keys \
+      lorax \
+      lorax-lmc-novirt \
+      pykickstart \
+      rpm-build \
+      rpmdevtools \
+      createrepo_c \
+      git \
+      curl \
+      rsync \
+      jq \
+      tar \
+      xz \
+      make \
+      ShellCheck \
+      vim-enhanced
+
+    dnf clean metadata
+
+    echo "OpenQOS build dependencies installed."

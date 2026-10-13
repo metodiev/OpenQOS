@@ -1,0 +1,53 @@
+# OpenQOS look-and-feel defaults.
+#
+# Plasma applies these when a user's session configuration is first created, so
+# this file defines the shipped appearance. Anything not listed here falls back to
+# Plasma's own built-in defaults.
+#
+# This is where OpenQOS declares its identity, and it is the only place that has to
+# agree with the artwork: /etc/xdg/kdeglobals wins over Fedora's KDE profile
+# (/usr/share/kde-settings/kde-profile/default/xdg), so a value set here is the one
+# a new session gets.
+#
+# Still built on upstream KDE Breeze for structure — the widget style, the window
+# decoration and the cursor theme are Breeze's, and there is no reason to write a
+# Plasma style of our own yet. What *is* ours is the colour scheme and the
+# wallpaper, both provided by the openqos-branding package, plus the panel layout in
+# contents/layouts/.
+
+[kdeglobals][KDE]
+widgetStyle=Breeze
+
+# Dark throughout, so the panel and application windows agree. A dark panel with
+# light application windows is also common — it is what Fedora ships — but it is two
+# decisions rather than one, and one palette is easier to keep consistent.
+#
+# OpenQOS.colors is derived from Breeze Dark's key set with the OpenQOS palette
+# substituted, so every widget keeps the contrast it was designed against.
+[kdeglobals][General]
+ColorScheme=OpenQOS
+SingleClick=false
+
+[kdeglobals][Icons]
+Theme=breeze-dark
+
+[plasmarc][Theme]
+name=breeze-dark
+
+[kcminputrc][Mouse]
+cursorTheme=breeze_cursors
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+
+[ksplashrc][KSplash]
+Theme=org.kde.breeze.desktop
+
+# The wallpaper package installed by openqos-branding as
+# /usr/share/wallpapers/OpenQOS. Plasma resolves this value as a wallpaper package
+# *name*, not a path: pointing it at a file is the mistake that produces a blank
+# desktop, because the image wallpaper plugin looks for
+# contents/images/<width>x<height>.<ext> underneath it.
+[Wallpaper]
+Image=OpenQOS

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  Permission to run the OpenQOS installer.
+
+  This is the only thing that lets an unprivileged user start an installation,
+  and it is deliberately narrow: org.freedesktop.policykit.exec.path names one
+  root-owned program, and that program accepts no arguments, reads a kickstart
+  it chose itself (the one in this package), and refuses to run unless the
+  running system is installation media. There is no path from this action to a
+  shell, to an arbitrary command, or to a kickstart someone else supplied.
+
+  allow_active is "yes" rather than "auth_admin" because of what the action can
+  do: clicking "Install OpenQOS" on the live desktop is already an explicit
+  request to install, and asking the person who clicked it to authenticate first
+  adds a password prompt to the one decision they have already made. Fedora's
+  equivalent action (org.fedoraproject.pkexec.liveinst) requires authentication;
+  the difference is that Fedora's launcher forwards its arguments to Anaconda,
+  and this one does not.
+
+  allow_any and allow_inactive stay at auth_admin: a session that is not the one
+  in front of the machine, or one with no session at all, gets nothing without
+  authentication.
+-->
+<policyconfig>
+  <vendor>OpenQOS Linux</vendor>
+
+  <action id="org.openqos.installer.run">
+    <description>Install OpenQOS Linux</description>
+    <message>Authentication is required to install OpenQOS Linux</message>
+    <icon_name>openqos-logo</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/openqos-install-root</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

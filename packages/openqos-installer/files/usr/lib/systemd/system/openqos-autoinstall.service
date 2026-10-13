@@ -1,0 +1,33 @@
+[Unit]
+Description=Unattended OpenQOS installation (inst.ks, or a disk labelled OEMDRV)
+Documentation=file:/usr/share/doc/openqos-installer/README.md
+# One condition, on purpose: the running system has to be live media. Whether an
+# installation was actually asked for is decided by the script, because there are
+# two ways to ask — inst.ks on the command line, or a disk labelled OEMDRV holding
+# /ks.cfg — and systemd conditions are ANDed, not ORed.
+ConditionPathExists=/run/initramfs/live
+After=local-fs.target
+Before=graphical.target
+
+[Service]
+Type=oneshot
+# Anaconda reads XDG_RUNTIME_DIR unconditionally when it starts up
+# (pyanaconda/display.py, do_startup_wl_actions) and raises TypeError if it is
+# unset, which is what happened the first time this unit ran. A system unit has
+# no session environment, so give it one: RuntimeDirectory creates and removes
+# the directory with the unit.
+RuntimeDirectory=openqos-autoinstall
+RuntimeDirectoryMode=0700
+Environment=XDG_RUNTIME_DIR=/run/openqos-autoinstall
+# An unattended installation's only output is progress: there is no display to
+# watch, and the machine is often a virtual machine whose console is a serial
+# line. Both get it.
+StandardOutput=journal+console
+StandardError=journal+console
+# Installing takes as long as it takes; the default one-shot timeout would kill a
+# large installation part-way through.
+TimeoutStartSec=infinity
+ExecStart=/usr/libexec/openqos/openqos-autoinstall
+
+[Install]
+WantedBy=multi-user.target

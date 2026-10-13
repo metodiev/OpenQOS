@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 320" width="1100" height="320">
+	<!--
+	  OpenQOS horizontal lockup — primary version, for light backgrounds.
+	  See openqos-logo-inverse.svg for the version for dark backgrounds.
+
+	  The mark is drawn inline rather than referenced, so this file is
+	  self-contained: a logo that depends on a second file breaks the moment
+	  someone copies one of them. The geometry is identical to
+	  logo/openqos-mark.svg and the three must be changed together — see
+	  PROVENANCE.md.
+
+	  The wordmark is set in a generic sans stack and split by weight: "Open" in
+	  regular, "QOS" in bold. That split is the whole typographic idea, so it
+	  survives a font substitution, which a hand-kerned wordmark would not.
+	  A release should replace it with drawn letterforms or a licensed face.
+	-->
+	<defs>
+		<style>
+			.wordmark {
+				font-family: "DejaVu Sans", "Liberation Sans", "Noto Sans", Cantarell, sans-serif;
+				font-size: 132px;
+				fill: #16212e;
+			}
+			.wordmark-open { font-weight: 400; }
+			.wordmark-qos { font-weight: 700; letter-spacing: 0.5px; }
+			.tagline {
+				font-family: "DejaVu Sans", "Liberation Sans", "Noto Sans", Cantarell, sans-serif;
+				font-size: 34px;
+				font-weight: 400;
+				letter-spacing: 1.5px;
+				fill: #4c6e96;
+			}
+		</style>
+	</defs>
+	<title>OpenQOS</title>
+
+	<g fill="none">
+		<path d="M 128 216 A 88 88 0 1 1 216 128" stroke="#2f4a66" stroke-width="26"/>
+		<path d="M 166 166 L 202 202" stroke="#4c6e96" stroke-width="26" stroke-linecap="round"/>
+	</g>
+	<path d="M 128 106 L 150 128 L 128 150 L 106 128 Z" fill="#101a25"/>
+
+	<text x="316" y="186">
+		<tspan class="wordmark wordmark-open">Open</tspan><tspan class="wordmark wordmark-qos">QOS</tspan>
+	</text>
+	<text class="tagline" x="320" y="238">LINUX</text>
+</svg>

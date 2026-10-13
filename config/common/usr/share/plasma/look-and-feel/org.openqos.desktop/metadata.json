@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OpenQOS contributors"
+            }
+        ],
+        "Category": "",
+        "Description": "OpenQOS desktop theme",
+        "Id": "org.openqos.desktop",
+        "License": "GPL-3.0-or-later",
+        "Name": "OpenQOS",
+        "Website": "https://github.com/metodiev/OpenQOS"
+    }
+}

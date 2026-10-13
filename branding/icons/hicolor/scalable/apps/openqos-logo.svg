@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+	<!--
+	  OpenQOS mark — inverse, for dark backgrounds.
+
+	  Identical geometry to openqos-mark.svg; only the three inks change. The two
+	  files are the pair a brand needs — the light-background version disappears
+	  on a dark wallpaper, and vice versa — and this one is what the desktop,
+	  boot splash and icon theme use, because OpenQOS ships a dark desktop.
+
+	  Keep the geometry here and in openqos-mark.svg in step. See PROVENANCE.md.
+
+	    Inks        light version      inverse (this file)
+	    ring        #2f4a66            #4c6e96
+	    tail        #4c6e96            #6e9ac8
+	    core        #101a25            #e8edf3
+	-->
+	<title>OpenQOS</title>
+	<g fill="none">
+		<path d="M 128 216 A 88 88 0 1 1 216 128" stroke="#4c6e96" stroke-width="26"/>
+		<path d="M 166 166 L 202 202" stroke="#6e9ac8" stroke-width="26" stroke-linecap="round"/>
+	</g>
+	<path d="M 128 106 L 150 128 L 128 150 L 106 128 Z" fill="#e8edf3"/>
+</svg>

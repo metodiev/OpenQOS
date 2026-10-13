@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# OpenQOS installer — the privileged half.
+#
+# Started by openqos-install through pkexec, under the policy in
+# /usr/share/polkit-1/actions/org.openqos.installer.policy. It takes exactly two
+# arguments, both supplied by the unprivileged half, and it survives a hostile
+# environment on purpose: everything it reads is a path it chose or a file on the
+# medium, and the kickstart it installs with is the one shipped in this package.
+#
+# It uses two pieces of Anaconda, in the way Fedora's own live installer uses
+# them:
+#
+#   /usr/libexec/anaconda/webui-desktop
+#       starts cockpit-ws and opens a browser on the Web UI as the session user.
+#       It works out which user that is itself, and creates their home directory
+#       if the live session has not.
+#
+#   anaconda --graphical --ks=<kickstart>
+#       is the installer. The browser is only a viewer: Anaconda itself needs no
+#       display, which is why nothing here exports one.
+#
+# The difference from Fedora's launcher is the absent --liveinst. That flag puts
+# Anaconda into live-install mode, and live-install mode ignores kickstarts by
+# design (pyanaconda.startup_utils.find_kickstart() is gated on `not
+# options.liveinst` in both branches), so dropping --liveinst is precisely what
+# makes the installation defined by kickstart/openqos.ks instead of by Anaconda's
+# defaults.
+#
+set -euo pipefail
+
+kickstart="${1:?usage: openqos-install-root <kickstart> <runtime-dir>}"
+runtime_dir="${2:-}"
+
+# The payload of a liveimg installation is the live filesystem image on this
+# medium. If it is absent this is not installation media, and starting the
+# installer anyway would fail several screens into the Web UI — or, with a
+# kickstart that clears disks, several steps further than that.
+live_image=/run/initramfs/live/LiveOS/squashfs.img
+if [ ! -f "${live_image}" ]; then
+	echo "openqos-install: ${live_image} is missing, so this is not OpenQOS" >&2
+	echo "                 installation media and there is nothing to install from." >&2
+	echo "                 Run the installer from the live media." >&2
+	exit 1
+fi
+
+if [ ! -f "${kickstart}" ]; then
+	echo "openqos-install: kickstart ${kickstart} is missing" >&2
+	exit 1
+fi
+
+# webui-desktop resolves the session user's environment through
+# `pkexec --user <user> ... systemctl --user show-environment`, and needs
+# XDG_RUNTIME_DIR to do it. pkexec cleared the environment on the way in, so the
+# unprivileged half passes it explicitly.
+if [ -n "${runtime_dir}" ] && [ -d "${runtime_dir}" ]; then
+	export XDG_RUNTIME_DIR="${runtime_dir}"
+fi
+
+# Same reason as the xhost call in the unprivileged half, for the other direction:
+# on X11 the browser, which webui-desktop starts as the session user, is the only
+# thing that draws.
+if [ -z "${WAYLAND_DISPLAY:-}" ] && command -v xhost >/dev/null 2>&1; then
+	xhost +si:localuser:root >/dev/null 2>&1 || true
+fi
+
+/usr/libexec/anaconda/webui-desktop -t live &
+echo "openqos-install: starting the installer with kickstart ${kickstart}"
+exec anaconda --graphical --ks="${kickstart}"

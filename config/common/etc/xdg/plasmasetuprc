@@ -1,0 +1,28 @@
+# OpenQOS first-boot setup.
+#
+# Plasma Setup is KDE's first-boot wizard. It runs before the login manager on the
+# first boot of a disk image, walks the user through locale and account creation,
+# and then writes /etc/plasma-setup-done so it never runs again.
+#
+# That makes it load-bearing for OpenQOS rather than a nicety. Product images ship
+# no usable account at all: root is locked and no user exists until someone creates
+# one — see the <users> note in kiwi/openqos/base.xml for why. So this wizard is the
+# only way into a freshly written OpenQOS disk image, and the build asserts that
+# relationship instead of trusting it. kiwi/config.sh fails if a profile would ship
+# a desktop with neither a usable account nor a wizard to create one.
+#
+# Upstream documents this file as the distribution's hook for exactly this kind of
+# policy, and installs it at /etc/xdg/plasmasetuprc.
+
+[Accounts]
+# The first user is an administrator. A desktop distribution whose only account
+# cannot run sudo is not a usable desktop, and the wizard's own interface offers
+# this as a choice, so the distribution has to state the default rather than leave
+# it to chance.
+#
+# `wheel` is upstream's default too; it is written out here so the policy is
+# visible in OpenQOS's tree rather than inherited by accident and mistaken for a
+# decision nobody made. Nothing else is added: extra groups such as `lp` or `kvm`
+# are granted by the packages that need them, and adding them here would hand out
+# privileges no package asked for.
+UserGroups=wheel

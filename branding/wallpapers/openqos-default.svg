@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3840 2160" width="3840" height="2160">
+	<!--
+	  OpenQOS default wallpaper.
+
+	  The mark, enlarged until it is no longer a logo but a horizon: concentric
+	  open rings low and right of centre, with the tail running toward the corner.
+	  Drawn at low opacity so panels, dialogs and window decorations sit on top
+	  without competing, and so the desktop stays calm on a bright monitor.
+
+	  The composition is deliberately asymmetric — weight sits right of centre and
+	  low, with a much larger, almost invisible ring cropped by the top-left
+	  corner so the left side is not simply empty. Both rings break in the
+	  lower-right quadrant, matching the mark, and the tail is placed so that it
+	  stays inside the frame: an earlier attempt put it off-canvas, where it
+	  contributed nothing.
+
+	    ring        centre (2450,900)   r 1250   open 90 degrees at 4:30
+	    hairline    centre (2450,900)   r  950   same gap
+	    tail        through both gaps, r 750 -> 1688, ends inside the frame
+	    left ring   centre (900,-400)   r 2600   almost invisible, cropped
+
+	  Built from flat colours and gradients only — no photographs, no texture, no
+	  third-party imagery — which keeps the licensing story simple and the file
+	  small enough to ship in several resolutions.
+
+	  Rendered to PNG by branding/tools/render-assets.py; see PROVENANCE.md.
+	-->
+	<defs>
+		<linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#0a1017"/>
+			<stop offset="0.42" stop-color="#101a25"/>
+			<stop offset="1" stop-color="#1d2b3b"/>
+		</linearGradient>
+
+		<radialGradient id="glow" cx="0.62" cy="0.38" r="0.70">
+			<stop offset="0" stop-color="#4c6e96" stop-opacity="0.40"/>
+			<stop offset="0.40" stop-color="#3d5a7d" stop-opacity="0.18"/>
+			<stop offset="1" stop-color="#16212e" stop-opacity="0"/>
+		</radialGradient>
+
+		<radialGradient id="vignette" cx="0.5" cy="0.5" r="0.80">
+			<stop offset="0" stop-color="#0a1017" stop-opacity="0"/>
+			<stop offset="0.58" stop-color="#0a1017" stop-opacity="0.22"/>
+			<stop offset="1" stop-color="#070c11" stop-opacity="0.78"/>
+		</radialGradient>
+
+		<clipPath id="frame">
+			<rect x="0" y="0" width="3840" height="2160"/>
+		</clipPath>
+	</defs>
+
+	<title>OpenQOS default wallpaper</title>
+
+	<g clip-path="url(#frame)">
+		<rect x="0" y="0" width="3840" height="2160" fill="url(#sky)"/>
+		<rect x="0" y="0" width="3840" height="2160" fill="url(#glow)"/>
+
+		<g fill="none">
+			<!--
+			  Outermost ring, cropped by every edge. It carries no gap and no
+			  tail: it is there for scale, so the two rings that do form the mark
+			  read as objects in front of something larger. An earlier version
+			  put a second broken ring at the top-left, which read as a second Q
+			  competing with the first.
+			-->
+			<path d="M 2450 3050 A 2150 2150 0 1 1 4600 900" stroke="#4c6e96" stroke-width="26" stroke-opacity="0.10"/>
+
+			<!-- The mark, at horizon scale: hairline strokes and one deliberate tail. -->
+			<path d="M 2450 2000 A 1100 1100 0 1 1 3550 900" stroke="#7fa6cd" stroke-width="30" stroke-opacity="0.22"/>
+			<path d="M 2450 1750 A 850 850 0 1 1 3300 900" stroke="#9dc0e0" stroke-width="12" stroke-opacity="0.13"/>
+			<path d="M 2995 1445 L 3644 2094" stroke="#7fa6cd" stroke-width="30" stroke-opacity="0.22" stroke-linecap="round"/>
+		</g>
+
+		<rect x="0" y="0" width="3840" height="2160" fill="url(#vignette)"/>
+	</g>
+</svg>

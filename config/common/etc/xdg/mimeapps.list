@@ -1,0 +1,31 @@
+# OpenQOS default applications.
+#
+# Desktop file IDs are checked against what the image actually installs. A wrong
+# ID here does not fail the build and shows no error at runtime: the association
+# simply never applies. Note in particular that Firefox's ID is
+# org.mozilla.firefox.desktop, not firefox.desktop.
+#
+# Verify with:  xdg-mime query default text/html
+
+[Default Applications]
+text/html=org.mozilla.firefox.desktop
+x-scheme-handler/http=org.mozilla.firefox.desktop
+x-scheme-handler/https=org.mozilla.firefox.desktop
+x-scheme-handler/mailto=org.kde.kmail2.desktop
+
+inode/directory=org.kde.dolphin.desktop
+text/plain=org.kde.kwrite.desktop
+application/pdf=org.kde.okular.desktop
+application/json=org.kde.kwrite.desktop
+
+image/png=org.kde.gwenview.desktop
+image/jpeg=org.kde.gwenview.desktop
+image/svg+xml=org.kde.gwenview.desktop
+
+video/mp4=org.kde.dragonplayer.desktop
+audio/mpeg=org.kde.elisa.desktop
+audio/flac=org.kde.elisa.desktop
+
+application/zip=org.kde.ark.desktop
+application/x-7z-compressed=org.kde.ark.desktop
+application/x-tar=org.kde.ark.desktop

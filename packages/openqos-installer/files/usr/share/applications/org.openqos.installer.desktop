@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=Install OpenQOS
+Comment=Install OpenQOS Linux on this computer
+Exec=openqos-install
+Icon=openqos-logo
+Terminal=false
+Categories=System;
+Keywords=install;setup;openqos;
+StartupNotify=true
+
+# Hidden from menus on purpose, which is also what Anaconda's own launcher does.
+# The live session puts this file in the desktop directory, where it is visible as
+# an icon; a menu entry would instead be copied into every system installed from
+# media and stay there, offering an installation there is no longer any medium
+# for.
+NoDisplay=true

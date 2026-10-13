@@ -1,0 +1,65 @@
+<!--
+  SPDX-FileCopyrightText: Fedora Project contributors
+  SPDX-FileCopyrightText: OpenQOS contributors
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  The Fedora copyright line is kept because this file is Fedora's, copied
+  rather than rewritten: their descriptions are GPL-3.0-or-later, and a
+  derived file keeps the notice. OpenQOS's contribution is the delta
+  described below and nothing else.
+
+  The shared desktop baseline, and the one place OpenQOS deviates from Fedora's
+  desktop profile on purpose.
+
+  This file replaces upstream/components/desktops/common.xml at the pinned
+  revision dfc49a5a10f69941179fdadd96aa6a5984f7c677. It is not an addition to it:
+  kiwi/OpenQOS.kiwi includes this file *instead* of upstream's, because the only
+  thing that differs is one line and KIWI has no way to remove a package from
+  another section. `<ignore>` cannot do it — it becomes dnf's exclude, and dnf
+  refuses a transaction that both requests and excludes the same package:
+
+      argument 'mediawriter' matches only excluded packages
+
+  which is exactly what upstream's line does, since it names the package
+  explicitly.
+
+  The delta from upstream is:
+
+    - <package name="mediawriter"/>   removed
+    + <ignore  name="mediawriter"/>   added in its place
+
+  Why remove it: Fedora Media Writer is Fedora's own image-writing utility. It is
+  not a generic tool, its interface is Fedora's, and its purpose on a desktop is to
+  write Fedora images. Shipping it on OpenQOS means shipping a Fedora-branded
+  application that does not write OpenQOS media, and nothing in the image requires
+  it — no package depends on it, so removing it costs nothing.
+
+  What is *not* possible yet is replacing it. That needs an OpenQOS image writer,
+  which is not a branding change but a piece of software; it is recorded as open
+  work rather than pretended away with a package that provides a name it does not
+  implement.
+
+  Everything else here is upstream's, copied deliberately rather than
+  reconstructed, so that a reader can diff the two files and see only the delta.
+  The cost of owning this file is that future additions upstream makes to the
+  desktop baseline will not reach us automatically; tests/check-upstream-drift.sh
+  exists to make that visible rather than silent.
+-->
+<image>
+	<profiles>
+		<profile name="DesktopCommon" description="Common desktop packages">
+			<requires profile="BaseCommon"/>
+			<requires profile="HardwareCommon"/>
+		</profile>
+	</profiles>
+	<packages type="image" patternType="plusRecommended" profiles="DesktopCommon">
+		<namedCollection name="fonts"/>
+		<namedCollection name="multimedia"/>
+		<namedCollection name="networkmanager-submodules"/>
+		<namedCollection name="printing"/>
+		<namedCollection name="guest-desktop-agents"/>
+		<ignore name="mediawriter"/>
+		<ignore name="gfs2-utils"/>
+		<ignore name="reiserfs-utils"/>
+	</packages>
+</image>

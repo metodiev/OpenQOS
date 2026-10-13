@@ -1,0 +1,27 @@
+# OpenQOS system-wide KDE defaults.
+#
+# Plasma sets XDG_CONFIG_DIRS=/etc/xdg:/usr/share/kde-settings/kde-profile/default/xdg
+# (see /etc/xdg/plasma-workspace/env/env.sh), and /etc/xdg comes first, so this
+# file takes precedence over the kde-profile shipped by Fedora's kde-settings
+# package. That is the supported way for a distribution to state its own
+# defaults, and it means we never edit a file owned by another package.
+#
+# Verify with:  kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage
+
+[General]
+font=Noto Sans,10,-1,5,50,0,0,0,0,0
+fixed=Noto Sans Mono,10,-1,5,50,0,0,0,0,0
+menuFont=Noto Sans,10,-1,5,50,0,0,0,0,0
+smallestReadableFont=Noto Sans,8,-1,5,50,0,0,0,0,0
+toolBarFont=Noto Sans,9,-1,5,50,0,0,0,0,0
+
+[KDE]
+# Selects our look-and-feel package, which is where the theme, wallpaper, splash
+# and default panel layout are actually defined. Changing this one key is what
+# switches the desktop's identity.
+LookAndFeelPackage=org.openqos.desktop
+
+# Open on double click. Single-click-to-open is a legitimate preference but a
+# surprising default for anyone arriving from another platform, and users who
+# want it can change it in one place.
+SingleClick=false

@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: CC-BY-SA-4.0
+# SPDX-FileCopyrightText: OpenQOS contributors
+#
+# OpenQOS Plymouth theme.
+#
+# ModuleName=two-step, not script. `two-step` is a module Plymouth itself
+# provides and Fedora ships its own themes on, so this splash cannot break the
+# boot on a key-typo the way a hand-written `script` theme can: every setting
+# below is a supported key of a compiled-in module, and the worst case for a key
+# that turns out to be unsupported is a missing element, not a failed splash.
+#
+# The two-step module loads its images by fixed filename from ImageDir:
+#   watermark.png   what we supply — the OpenQOS lockup, centred
+#   background.png  not supplied; BackgroundStartColor/EndColor paint instead
+#
+# Not yet verified on real hardware: this VM has no DRM device, so Plymouth
+# falls back to its text renderer and never draws any of this. The files and
+# their keys are what is verified so far. See docs/roadmap.md.
+
+[Plymouth Theme]
+Name=OpenQOS
+Description=OpenQOS boot splash: the OpenQOS lockup on the OpenQOS background
+ModuleName=two-step
+
+[two-step]
+Font=Cantarell 12
+TitleFont=Cantarell Light 30
+ImageDir=/usr/share/plymouth/themes/openqos
+DialogHorizontalAlignment=.5
+DialogVerticalAlignment=.382
+TitleHorizontalAlignment=.5
+TitleVerticalAlignment=.382
+HorizontalAlignment=.5
+VerticalAlignment=.7
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.40
+Transition=none
+TransitionDuration=0.0
+BackgroundStartColor=0x0b1219
+BackgroundEndColor=0x1d2b3b
+ProgressBarBackgroundColor=0x1d2b3b
+ProgressBarForegroundColor=0x7fa6cd
+MessageBelowAnimation=true
+
+[boot-up]
+UseEndAnimation=false
+UseProgressBar=true
+ProgressBarShowPercentComplete=false
+
+[shutdown]
+UseEndAnimation=false
+UseProgressBar=true
+
+[reboot]
+UseEndAnimation=false
+UseProgressBar=true
+
+[updates]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Installing Updates...
+SubTitle=Do not turn off your computer
+
+[system-upgrade]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Upgrading System...
+SubTitle=Do not turn off your computer
+
+[firmware-upgrade]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Upgrading Firmware...
+SubTitle=Do not turn off your computer
+
+[system-reset]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Resetting System...
+SubTitle=Do not turn off your computer

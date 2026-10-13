@@ -1,0 +1,13 @@
+{
+	"KPlugin": {
+		"Authors": [
+			{
+				"Name": "OpenQOS contributors"
+			}
+		],
+		"Id": "OpenQOS",
+		"Name": "OpenQOS",
+		"License": "CC-BY-SA-4.0",
+		"Description": "The OpenQOS default wallpaper"
+	}
+}

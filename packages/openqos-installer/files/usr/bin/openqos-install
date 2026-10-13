@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# OpenQOS installer — the unprivileged half, and what the desktop entry runs.
+#
+# Its whole job is to hand two values to the privileged half and get out of the
+# way. Arguments are refused rather than forwarded: the privileged half runs as
+# root, and an installer that accepted a kickstart path from whoever clicked it
+# would be a way for any user of a live session to repartition any disk with any
+# layout. Nothing here needs to be a parameter, because the one thing that varies
+# is a property of the medium, not of the caller.
+#
+# /usr/libexec/anaconda/webui-desktop, started by the privileged half, runs the
+# browser as the session user and needs XDG_RUNTIME_DIR of that user, which
+# pkexec clears. It is therefore passed as an argument.
+#
+set -euo pipefail
+
+if [ $# -ne 0 ]; then
+	echo "openqos-install: takes no arguments" >&2
+	exit 2
+fi
+
+kickstart=/usr/share/openqos/kickstart/openqos.ks
+runtime_dir="${XDG_RUNTIME_DIR:-}"
+
+# An X11 session does not let another user draw in it until it is told to. This
+# is the same call Fedora's live installer makes, for the same reason, and Wayland
+# needs nothing. It is done here because it acts on this user's session.
+if [ -z "${WAYLAND_DISPLAY:-}" ] && command -v xhost >/dev/null 2>&1; then
+	xhost +si:localuser:root >/dev/null 2>&1 || true
+fi
+
+exec pkexec /usr/bin/openqos-install-root "${kickstart}" "${runtime_dir}"

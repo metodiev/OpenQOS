@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 320" width="1100" height="320">
+	<!--
+	  OpenQOS horizontal lockup — inverse, for dark backgrounds.
+
+	  Same geometry and same wordmark as openqos-logo.svg; only the inks change.
+	  This is the version the desktop and the boot splash use.
+
+	    Inks          light version     inverse (this file)
+	    ring          #2f4a66           #4c6e96
+	    tail          #4c6e96           #6e9ac8
+	    core          #101a25           #e8edf3
+	    wordmark      #16212e           #e8edf3
+	    tagline       #4c6e96           #8fa3b8
+
+	  See PROVENANCE.md.
+	-->
+	<defs>
+		<style>
+			.wordmark {
+				font-family: "DejaVu Sans", "Liberation Sans", "Noto Sans", Cantarell, sans-serif;
+				font-size: 132px;
+				fill: #e8edf3;
+			}
+			.wordmark-open { font-weight: 400; }
+			.wordmark-qos { font-weight: 700; letter-spacing: 0.5px; }
+			.tagline {
+				font-family: "DejaVu Sans", "Liberation Sans", "Noto Sans", Cantarell, sans-serif;
+				font-size: 34px;
+				font-weight: 400;
+				letter-spacing: 1.5px;
+				fill: #8fa3b8;
+			}
+		</style>
+	</defs>
+	<title>OpenQOS</title>
+
+	<g fill="none">
+		<path d="M 128 216 A 88 88 0 1 1 216 128" stroke="#4c6e96" stroke-width="26"/>
+		<path d="M 166 166 L 202 202" stroke="#6e9ac8" stroke-width="26" stroke-linecap="round"/>
+	</g>
+	<path d="M 128 106 L 150 128 L 128 150 L 106 128 Z" fill="#e8edf3"/>
+
+	<text x="316" y="186">
+		<tspan class="wordmark wordmark-open">Open</tspan><tspan class="wordmark wordmark-qos">QOS</tspan>
+	</text>
+	<text class="tagline" x="320" y="238">LINUX</text>
+</svg>

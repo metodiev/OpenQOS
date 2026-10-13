@@ -1,0 +1,65 @@
+# Build output. Never commit artifacts; they are recorded in the build manifest
+# and published as release assets instead.
+/build/
+/out/
+/output/
+*.iso
+*.sha256
+*.qcow2
+*.raw
+*.raw.xz
+*.vhd
+*.vhdx
+*.tar.xz
+*.tar.gz
+*.box
+
+# KIWI scratch space and the fetched upstream description set. Neither is
+# tracked: kiwi/upstream is materialised by scripts/fetch-upstream-descriptions.sh
+# at the revision pinned in kiwi/upstream.lock.
+/kiwi/build/
+/kiwi/upstream/
+
+# Symlinks staged into the description directory by scripts/build-image.sh, so
+# that KIWI can reach files it resolves against the description root. The real
+# files live in config/.
+/kiwi/config
+/kiwi/staged-*
+
+# Upstream assets referenced by bare name in Fedora's own description, staged as
+# symlinks by scripts/build-image.sh.
+/kiwi/grub-*.cfg.iso-template
+/kiwi/iso-esp-excludes.yaml
+
+# RPM build trees and produced packages
+/rpmbuild/
+# (the package build tree lives outside the repository; see scripts/build-packages.sh)
+*.rpm
+*.src.rpm
+*.build-id
+
+# Local virtual machine state. The Lima instance belongs in ~/.lima, not here,
+# but be defensive if someone runs limactl with --tty=false in-tree.
+/vm/
+*.lima.yaml.local
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local overrides that must never be committed
+*.local
+.env
+.env.*
+!.env.example

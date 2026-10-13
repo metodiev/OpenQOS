@@ -1,0 +1,169 @@
+# SPDX-License-Identifier: CC-BY-SA-4.0
+# SPDX-FileCopyrightText: OpenQOS contributors
+#
+# OpenQOS colour scheme.
+#
+# Derived from Breeze Dark's key set — every section and key that Plasma 6 defines
+# is present, so nothing silently falls back to a default — with the values
+# replaced by the OpenQOS palette. The structure is deliberately identical so that
+# a diff against BreezeDark.colors shows exactly the colours, and nothing else.
+#
+# Palette
+#   deep         #0a1017  10,16,23    the darkest surface, used by the wallpaper
+#   view         #0f1822  15,24,34    document and list backgrounds
+#   window       #16212e  22,33,46    window backgrounds
+#   surface      #1d2b3b  29,43,59    buttons, tooltips, alternate rows
+#   ring         #2f4a66  47,74,102   the mark's ring, use as a dark accent
+#   accent       #4c6e96  76,110,150  focus, selection, highlight — the same blue
+#                                      as ANSI_COLOR in the os-release file
+#   accent light #7fa6cd 127,166,205  active and hover states
+#   text         #e8edf3 232,237,243  primary foreground
+#   text muted   #8fa3b8 143,163,184  inactive foreground
+
+[ColorEffects:Disabled]
+Color=56,56,56
+ColorAmount=0
+ColorEffect=0
+ContrastAmount=0.65
+ContrastEffect=1
+IntensityAmount=0.1
+IntensityEffect=2
+
+[ColorEffects:Inactive]
+ChangeSelectionColor=true
+Color=112,111,110
+ColorAmount=0.025
+ColorEffect=2
+ContrastAmount=0.1
+ContrastEffect=2
+Enable=false
+IntensityAmount=0
+IntensityEffect=0
+
+[Colors:Button]
+BackgroundAlternate=22,33,46
+BackgroundNormal=29,43,59
+DecorationFocus=76,110,150
+DecorationHover=127,166,205
+ForegroundActive=127,166,205
+ForegroundInactive=143,163,184
+ForegroundLink=127,166,205
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=232,237,243
+ForegroundPositive=39,174,96
+ForegroundVisited=155,89,182
+
+[Colors:Complementary]
+BackgroundAlternate=15,24,34
+BackgroundNormal=10,16,23
+DecorationFocus=76,110,150
+DecorationHover=127,166,205
+ForegroundActive=127,166,205
+ForegroundInactive=143,163,184
+ForegroundLink=127,166,205
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=232,237,243
+ForegroundPositive=39,174,96
+ForegroundVisited=155,89,182
+
+[Colors:Header]
+BackgroundAlternate=22,33,46
+BackgroundNormal=29,43,59
+DecorationFocus=76,110,150
+DecorationHover=127,166,205
+ForegroundActive=127,166,205
+ForegroundInactive=143,163,184
+ForegroundLink=127,166,205
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=232,237,243
+ForegroundPositive=39,174,96
+ForegroundVisited=155,89,182
+
+[Colors:Header][Inactive]
+BackgroundAlternate=29,43,59
+BackgroundNormal=22,33,46
+DecorationFocus=76,110,150
+DecorationHover=127,166,205
+ForegroundActive=127,166,205
+ForegroundInactive=143,163,184
+ForegroundLink=127,166,205
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=232,237,243
+ForegroundPositive=39,174,96
+ForegroundVisited=155,89,182
+
+[Colors:Selection]
+BackgroundAlternate=47,74,102
+BackgroundNormal=76,110,150
+DecorationFocus=127,166,205
+DecorationHover=127,166,205
+ForegroundActive=255,255,255
+ForegroundInactive=143,163,184
+ForegroundLink=232,237,243
+ForegroundNegative=255,181,188
+ForegroundNeutral=255,199,138
+ForegroundNormal=255,255,255
+ForegroundPositive=168,231,196
+ForegroundVisited=214,182,240
+
+[Colors:Tooltip]
+BackgroundAlternate=22,33,46
+BackgroundNormal=29,43,59
+DecorationFocus=76,110,150
+DecorationHover=127,166,205
+ForegroundActive=127,166,205
+ForegroundInactive=143,163,184
+ForegroundLink=127,166,205
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=232,237,243
+ForegroundPositive=39,174,96
+ForegroundVisited=155,89,182
+
+[Colors:View]
+BackgroundAlternate=22,33,46
+BackgroundNormal=15,24,34
+DecorationFocus=76,110,150
+DecorationHover=127,166,205
+ForegroundActive=127,166,205
+ForegroundInactive=143,163,184
+ForegroundLink=127,166,205
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=232,237,243
+ForegroundPositive=39,174,96
+ForegroundVisited=155,89,182
+
+[Colors:Window]
+BackgroundAlternate=29,43,59
+BackgroundNormal=22,33,46
+DecorationFocus=76,110,150
+DecorationHover=127,166,205
+ForegroundActive=127,166,205
+ForegroundInactive=143,163,184
+ForegroundLink=127,166,205
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=232,237,243
+ForegroundPositive=39,174,96
+ForegroundVisited=155,89,182
+
+[General]
+ColorScheme=OpenQOS
+Name=OpenQOS
+shadeSortColumn=true
+
+[KDE]
+contrast=4
+
+[WM]
+activeBackground=22,33,46
+activeBlend=232,237,243
+activeForeground=232,237,243
+inactiveBackground=15,24,34
+inactiveBlend=143,163,184
+inactiveForeground=143,163,184

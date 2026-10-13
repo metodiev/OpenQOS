@@ -1,0 +1,39 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Shell scripts and kickstart files follow the Fedora / anaconda convention of
+# four spaces.
+[*.sh]
+indent_size = 4
+[*.ks]
+indent_size = 4
+
+# KIWI descriptions are XML and upstream Fedora's own descriptions are
+# tab-indented. Matching upstream keeps derived-file diffs readable.
+[*.xml]
+indent_style = tab
+
+# RPM specifications are read with the traditional leading whitespace.
+[*.spec]
+indent_size = 1
+
+[Makefile]
+indent_style = tab
+
+# Markdown uses trailing double-spaces as a line break.
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[{LICENSE,COPYING,licenses/**}]
+indent_style = none
+trim_trailing_whitespace = false

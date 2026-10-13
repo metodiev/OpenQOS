@@ -1,0 +1,73 @@
+<!--
+  The OpenQOS disk-image type.
+
+  Kept separate from base.xml, and from the base profile, because an image *type*
+  and the base *content* have different scopes. The disk type must not be active
+  when building live media: Preferences attach to every profile name in the active
+  set, including required ones, so a live profile that required the base profile
+  would end up with two `<type>` elements for the same build and fail. Splitting
+  them lets every profile share the same base packages and account setup while only
+  the disk-based ones inherit this type.
+
+  The type is modelled on Fedora's `Cloud-Base-Generic` aarch64 type in
+  upstream/teams/cloud/cloud.xml, which is the closest *proven* configuration for
+  an aarch64 system that boots under UEFI in a virtual machine. Deriving from
+  something Fedora actually ships is deliberate: aarch64 boot layout (ESP size,
+  btrfs subvolumes, GRUB on a serial console) is easy to get subtly wrong from
+  first principles.
+
+  Deviations from that upstream type, and why:
+    * rootfs_label="openqos" instead of "fedora"
+    * bootloader timeout=5 instead of 0, so the GRUB menu is visible while we are
+      still bringing the platform up. Return this to 0 before release.
+    * size 16G instead of 5G: a sparse ceiling sized for the largest profile
+      sharing this type, which is the KDE Plasma desktop.
+  `systemd.firstboot=off` is kept from upstream: it makes the boot deterministic
+  and non-interactive.
+-->
+<image>
+	<profiles>
+		<profile name="OpenQOS-Disk" description="Shared OpenQOS disk-image layout (aarch64 UEFI)">
+			<requires profile="OpenQOS-Base"/>
+			<!--
+			  Boot-core selection belongs here rather than in the base profile,
+			  because it is a property of the media, not of OpenQOS.
+
+			  Upstream defines two mutually exclusive boot profiles: `BootCore`
+			  installs `kernel-core`; `BootCoreLive` installs `kernel-uki-dtbloader`
+			  on aarch64 and deliberately does not install `kernel-core`. The two
+			  kernel packages declare a Conflicts on each other at the same
+			  version, so a profile that activates both cannot be resolved at all.
+
+			  Live media activate `BootCoreLive` on their own, through
+			  `LiveInstall`. If the base profile also required `BootCore`, every
+			  live build would inherit both and fail with a kernel conflict that
+			  says nothing about the profile graph. Disk images need `BootCore`
+			  explicitly, and this is the only place that needs it.
+			-->
+			<requires profile="BootCore"/>
+		</profile>
+	</profiles>
+
+	<preferences profiles="OpenQOS-Disk" arch="aarch64">
+		<type image="oem" format="qcow2"
+		      filesystem="btrfs" btrfs_root_is_subvolume="true" btrfs_set_default_volume="false" fsmountoptions="compress=zstd:1"
+		      kernelcmdline="no_timer_check console=tty1 console=ttyAMA0,115200n8 systemd.firstboot=off"
+		      devicepersistency="by-uuid"
+		      bootpartition="false" efipartsize="100" firmware="uefi"
+		      rootfs_label="openqos"
+		      >
+			<bootloader name="grub2" bls="true" console="serial" timeout="5"/>
+			<size unit="G">16</size>
+			<systemdisk>
+				<volume name="@root=root"/>
+				<volume name="boot" parent="/"/>
+				<volume name="home" parent="/"/>
+				<volume name="var" parent="/"/>
+			</systemdisk>
+			<oemconfig>
+				<oem-resize>false</oem-resize>
+			</oemconfig>
+		</type>
+	</preferences>
+</image>

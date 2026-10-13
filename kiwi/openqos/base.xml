@@ -1,0 +1,164 @@
+<!--
+  OpenQOS base profile.
+
+  Everything here is shared deliberately: every OpenQOS profile requires
+  `OpenQOS-Base`, so the base package set, the security baseline and the
+  development account are defined once.
+
+  The disk-image *type* is not here — it lives in disk.xml. A type must not be
+  active when building live media, and Preferences attach to every profile name
+  in the active set, including required ones.
+
+  `OpenQOS-Base` also does not require a boot profile, and that omission is
+  deliberate: which kernel packages a build gets depends on the media, not on
+  OpenQOS. See the note on `OpenQOS-Disk` in disk.xml.
+-->
+<image>
+	<profiles>
+		<profile name="OpenQOS-Base" description="Shared OpenQOS base: Fedora base system, security baseline and identity">
+			<requires profile="BaseCommon"/>
+		</profile>
+		<profile name="OpenQOS-Minimal" description="Smallest bootable OpenQOS image; validates the build pipeline only">
+			<requires profile="OpenQOS-Disk"/>
+		</profile>
+	</profiles>
+
+	<!--
+	  Our own packages, published as an rpm-md repository by
+	  scripts/build-packages.sh.
+
+	  The path is absolute because a repository source has to be: KIWI offers no
+	  way to express a path relative to the description directory. The script
+	  publishes there and the two must agree; both say /srv/openqos/packages.
+	-->
+	<preferences profiles="OpenQOS-Base">
+		<!--
+		  The boot splash theme, chosen the way KIWI supports: it runs
+		  `plymouth-set-default-theme openqos` inside the image, so Plymouth's own
+		  tool writes its own configuration. The alternative — shipping
+		  /etc/plymouth/plymouthd.conf ourselves as a <file> overlay — works, but it
+		  means overwriting a file the plymouth package owns, and it would create
+		  that file even on profiles that do not install Plymouth at all. KIWI skips
+		  this silently when the tool is absent, which is what makes it safe here.
+
+		  The theme itself comes from openqos-branding.
+		-->
+		<bootsplash-theme>openqos</bootsplash-theme>
+	</preferences>
+
+	<repository type="rpm-md" alias="openqos">
+		<source path="file:///srv/openqos/packages"/>
+	</repository>
+
+	<!--
+	  Packages the upstream profiles do not supply but which this image needs.
+	  Each one is here for a concrete reason, verified against a real build:
+
+	    glibc-langpack-en  Without it, KIWI's locale step fails outright:
+	                       "Locale en_US.UTF-8 is not installed."
+	    kernel-modules     kernel-core alone does not include virtio_blk or
+	                       virtio_pci. Without them the image cannot find its
+	                       own root filesystem on a virtio block disk, which is
+	                       how QEMU, UTM and Lima attach disks by default.
+	    NetworkManager     systemd-networkd is pulled in but ships no enabled
+	                       configuration, so the system comes up with no usable
+	                       network. NetworkManager is what Fedora's own desktop
+	                       and cloud images use, and it is what Plasma expects
+	                       at Milestone 6, so we start from it now.
+	    iproute            Basic interface inspection, for verification.
+	    efibootmgr         Managing UEFI boot entries, as on any Fedora UEFI
+	                       install.
+
+	  Security baseline. Fedora's `standard` comps group does not provide these,
+	  and a build without them produced a system with SELinux disabled, no
+	  firewall and no audit daemon — which is not an acceptable Fedora base:
+
+	    selinux-policy-targeted  Without a policy, /sys/fs/selinux/enforce reads
+	                             0 and every file is labelled from the kernel's
+	                             default initial context. Fedora's security model
+	                             depends on this policy being present.
+	    rpm-plugin-selinux       Makes RPM apply policy-correct labels as
+	                             packages are installed, so the image does not
+	                             need a first-boot relabel cycle.
+	    firewalld                Host firewall, on by default in Fedora.
+	    audit                    The audit daemon.
+
+	  Deliberately absent: kernel-modules-extra (exotic hardware only, large),
+	  glibc-all-langpacks, and the dracut rescue initramfs.
+	-->
+	<packages type="image" patternType="plusRecommended" profiles="OpenQOS-Base">
+		<package name="openqos-branding"/>
+		<package name="openqos-release"/>
+
+		<!--
+		  No Fedora identity flavour may be installed. There are 61 of them
+		  (fedora-release-identity-basic, -budgie, -kde-desktop, -silverblue,
+		  ...), each providing the virtual name `fedora-release-identity` and
+		  each declaring a Conflicts on it so that exactly one can ever be
+		  installed. fedora-release-common requires that virtual name, but at a
+		  version, not as a named package — and no profile here names a flavour.
+		  So dnf is free to satisfy the requirement with whichever flavour it
+		  likes, and it picked `budgie` for an image with no desktop at all.
+
+		  openqos-release provides the same virtual name at the required
+		  version, so the intent is for dnf to choose ours. It will not, while
+		  61 equally-valid candidates remain: every Fedora repository and ours
+		  share one priority, and obsoleting a single flavour just removes that
+		  one candidate. Excluding the family leaves exactly one provider, which
+		  is what makes the outcome deterministic instead of lucky.
+
+		  KIWI turns <ignore> into dnf's exclude option, which takes a glob, so the
+		  whole family can be named without listing it. Note that KIWI applies
+		  <ignore> from every packages section of a given *type* regardless of its
+		  profiles= attribute, so this applies to all OpenQOS profiles — which is
+		  the intent: OpenQOS identity is not a per-profile choice.
+
+		  This section is type="image". The bootstrap transaction installs the
+		  same flavour family by a different path and needs its own ignore; see
+		  kiwi/OpenQOS.kiwi.
+		-->
+		<ignore name="fedora-release-identity-*"/>
+
+		<package name="glibc-langpack-en"/>
+		<package name="kernel-modules"/>
+		<package name="NetworkManager"/>
+		<package name="iproute"/>
+		<package name="efibootmgr"/>
+		<package name="selinux-policy-targeted"/>
+		<package name="rpm-plugin-selinux"/>
+		<package name="firewalld"/>
+		<package name="audit"/>
+	</packages>
+
+	<!--
+	  Root, and no usable password.
+
+	  KIWI's schema requires a password attribute on <user>, so one is given: a
+	  bare "!" with pwdformat="encrypted". KIWI passes an encrypted value through
+	  verbatim (`useradd -p '!'`) and "!" in /etc/shadow is the standard marker for
+	  an account with no password that cannot be logged into. The account exists so
+	  that root's home and groups are set up as a normal system expects; it cannot
+	  be logged into.
+
+	  What is deliberately *not* used is `pwdformat="plain"`, which is the obvious
+	  thing to reach for and is what Fedora's own users.xml does. KIWI hashes a plain
+	  password with the C library's default crypt method, which on current glibc is
+	  MD5 — a $1$ hash in /etc/shadow, and a legacy algorithm. There is no way to ask
+	  KIWI for anything stronger: the only encrypted option means committing a hash,
+	  which is no better than committing the password.
+
+	  So a credential is set in kiwi/config.sh instead, where chpasswd can be told
+	  the algorithm explicitly. That script also asserts the result: the build fails
+	  if any account ends up with a hash weaker than SHA-512, and it fails if a
+	  profile that is not a development profile carries a login credential at all.
+
+	  Fedora's equivalent (upstream/components/users.xml) sets a placeholder with a
+	  comment saying it will be erased in config.sh — which is what its own config.sh
+	  does, and which our config.sh does not do for us, since Fedora's config.sh is
+	  not executed for OpenQOS images. The assertion above is what stands in for it.
+	  Milestone 8 replaces this with the real first-boot user setup.
+	-->
+	<users profiles="OpenQOS-Base">
+		<user name="root" groups="root" password="!" pwdformat="encrypted" home="/root"/>
+	</users>
+</image>

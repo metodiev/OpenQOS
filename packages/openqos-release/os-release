@@ -1,0 +1,26 @@
+NAME="OpenQOS Linux"
+VERSION="0.1 (Development)"
+ID=openqos
+ID_LIKE="fedora"
+VERSION_ID=0.1
+VERSION_CODENAME=""
+PRETTY_NAME="OpenQOS Linux 0.1 (Development)"
+ANSI_COLOR="0;38;2;76;110;150"
+LOGO=openqos-logo
+CPE_NAME="cpe:/o:openqos:openqos:0.1"
+DEFAULT_HOSTNAME="openqos"
+HOME_URL="https://github.com/metodiev/OpenQOS"
+DOCUMENTATION_URL="https://github.com/metodiev/OpenQOS/tree/main/docs"
+SUPPORT_URL="https://github.com/metodiev/OpenQOS/issues"
+BUG_REPORT_URL="https://github.com/metodiev/OpenQOS/issues"
+
+# The Fedora platform this release is built on. Kept deliberately: PLATFORM_ID is
+# what tooling uses to select platform-specific conventions, and it states a fact
+# about the base rather than making a claim about the product.
+PLATFORM_ID="platform:f44"
+SUPPORT_END="2027-05-19"
+
+# Deliberately absent: REDHAT_BUGZILLA_PRODUCT, REDHAT_SUPPORT_PRODUCT and
+# REDHAT_SUPPORT_PRODUCT_VERSION. Those exist on Fedora to route bug reports and
+# support entitlements to Red Hat. OpenQOS is not a Red Hat product, and claiming
+# otherwise in os-release would be both wrong and impolite.

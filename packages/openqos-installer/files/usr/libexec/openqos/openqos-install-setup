@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# Put the OpenQOS installer on the live desktop.
+#
+# anaconda-live ships /etc/xdg/autostart/liveinst-setup.desktop, whose script
+# copies a Fedora-named launcher into the live user's desktop directory: "Install
+# to Hard Drive", carrying Fedora's installer icon. OpenQOS media should offer one
+# installer, named after this distribution, and it should not be Anaconda's.
+#
+# Started by /etc/xdg/autostart/zz-openqos-install.desktop. The zz- prefix is an
+# attempt to sort after Anaconda's entry, but the order XDG autostart entries
+# start in is not something a script here can control — it depends on whether the
+# session's autostart handling is Plasma's or systemd's — so this does two
+# independent things instead of relying on being last:
+#
+#   * it writes a user-level entry with the same name as Anaconda's and
+#     Hidden=true, which per the XDG autostart specification overrides the system
+#     one, so on every later login nothing is copied;
+#   * it removes a copy that has already appeared, retrying for a few seconds to
+#     catch one that Anaconda's script makes after this one runs.
+#
+# Both of those act on the live user's own directories. No packaged file is
+# touched, so this is reversible by deleting two files in a home directory, and
+# nothing here can affect an installed system.
+#
+set -euo pipefail
+
+# Live media only, by the same test Anaconda's own script uses: the live
+# filesystem is a device-mapper target. An installed system copied from media
+# still carries this script, and there it exits silently.
+if [ ! -b /dev/mapper/live-base ] && [ ! -b /dev/mapper/live-osimg-min ]; then
+	exit 0
+fi
+
+desktop_dir="${XDG_DESKTOP_DIR:-}"
+if [ -z "${desktop_dir}" ] && command -v xdg-user-dir >/dev/null 2>&1; then
+	desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
+fi
+desktop_dir="${desktop_dir:-${HOME:-/root}/Desktop}"
+
+mkdir -p -- "${desktop_dir}"
+install -m 0644 /usr/share/applications/org.openqos.installer.desktop \
+	"${desktop_dir}/org.openqos.installer.desktop"
+
+config_dir="${XDG_CONFIG_HOME:-${HOME:-/root}/.config}/autostart"
+mkdir -p -- "${config_dir}"
+cat > "${config_dir}/liveinst-setup.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Disabled by OpenQOS
+Comment=OpenQOS installs through its own launcher; see org.openqos.installer.desktop
+Hidden=true
+EOF
+
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+	rm -f -- "${desktop_dir}/liveinst.desktop"
+	sleep 0.5
+done

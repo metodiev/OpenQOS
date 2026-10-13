@@ -1,0 +1,48 @@
+<!--
+  Test-only profiles.
+
+  These exist so that a built image can be verified by actually logging into it,
+  rather than by inferring from the console. Milestone 5 asks for login to be
+  verified, and later milestones need to inspect a running system, so this is
+  infrastructure rather than a throwaway.
+
+  Nothing here is intended for release. Anything that weakens security for the
+  sake of testing is confined to profiles whose name ends in `-Test`, and is
+  applied by kiwi/config.sh, which is gated on that name.
+-->
+<image>
+	<profiles>
+		<profile name="OpenQOS-Minimal-Test" description="OpenQOS-Minimal plus SSH, for automated boot verification. Not for release.">
+			<requires profile="OpenQOS-Minimal"/>
+		</profile>
+		<profile name="OpenQOS-KDE-Disk-Test" description="OpenQOS-KDE-Disk plus SSH, for automated desktop verification. Not for release.">
+			<requires profile="OpenQOS-KDE-Disk"/>
+		</profile>
+		<profile name="OpenQOS-KDE-Live-Test" description="OpenQOS-KDE-Live plus SSH and a known account, for automated verification. Not for release.">
+			<requires profile="OpenQOS-KDE-Live"/>
+		</profile>
+	</profiles>
+
+	<packages type="image" patternType="plusRecommended" profiles="OpenQOS-Minimal-Test,OpenQOS-KDE-Disk-Test">
+		<package name="openssh-server"/>
+	</packages>
+
+	<packages type="iso" patternType="plusRecommended" profiles="OpenQOS-KDE-Live-Test">
+		<package name="openssh-server"/>
+	</packages>
+
+	<!--
+	  DEVELOPMENT ONLY, and ineffective on live media — recorded so nobody wastes
+	  time on it. A live image has no usable account: livesys-main runs
+	  `passwd -d root` at boot, deleting whatever password the image carries, and
+	  creates `liveuser` without one instead. So the root password below is wiped
+	  on every boot of this profile.
+
+	  The profile is kept because having an SSH server present is still useful, but
+	  verifying live media means reading the serial console, not logging in. See
+	  docs/roadmap.md.
+	-->
+	<users profiles="OpenQOS-KDE-Live-Test">
+		<user name="root" groups="root" password="openqos-dev" pwdformat="plain" home="/root"/>
+	</users>
+</image>
