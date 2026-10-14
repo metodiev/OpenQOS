@@ -15,7 +15,7 @@
 
 Name:           openqos-branding
 Version:        %{branding_release}
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        OpenQOS visual identity: logo, wallpaper, colour scheme and boot splash
 
 License:        CC-BY-SA-4.0
@@ -29,6 +29,46 @@ BuildArch:      noarch
 # scheme are inert without it, and a minimal image still needs the logo and the
 # icon, so a hard dependency would drag a desktop into every profile.
 Requires:       hicolor-icon-theme
+
+# Satisfies the `system-logos` virtual name, which this package has to take over
+# rather than merely compete for.
+#
+# Two packages provide it: Fedora's fedora-logos and the stand-in generic-logos.
+# Both also own /usr/share/pixmaps/system-logo-white.png, the file dracut copies
+# into the initramfs for the boot splash. Excluding only fedora-logos does not
+# remove that file; it makes dnf satisfy the requirement with generic-logos
+# instead, and the image then fails to build with a file conflict between the two
+# -- which is how this was found. Excluding both leaves one provider, so the
+# outcome is deterministic rather than whichever one dnf happens to prefer.
+#
+# Unversioned is enough here, and that was checked rather than assumed: every
+# package that requires `system-logos` in the installed set asks for it without a
+# version, including kde-settings-plasma and plymouth-graphics-libs. That is what
+# makes this unlike fedora-release-identity, which is required at an exact version
+# and is why openqos-release has to carry Fedora's version-release.
+Provides:       system-logos
+
+# The name kde-settings-plasma, kde-settings-plasmalogin and plasma-setup actually
+# ask for.
+#
+# Fedora satisfies it with desktop-backgrounds-kde, a metapackage that provides both
+# `desktop-backgrounds-kde` and `system-backgrounds-kde`, and whose only job is to
+# require f44-backgrounds-kde, which in turn requires f44-backgrounds-base at an
+# *exact* version. Those two ship Fedora's wallpapers, and OpenQOS excludes all
+# three so the Plasma wallpaper picker stops offering "F44".
+#
+# The name to provide is `system-backgrounds-kde`, not the package's own name, and
+# that is worth recording. `repoquery --whatrequires desktop-backgrounds-kde` lists
+# those three packages, which reads as though they require it by name. They do not:
+# repoquery --whatrequires resolves capabilities, so it was answering a different
+# question than it appeared to. The build answered it precisely, once, by failing
+# with "requires system-backgrounds-kde, but none of the providers can be
+# installed".
+#
+# Providing the capability rather than Fedora's release-specific package names is
+# deliberate: this name does not churn with the Fedora release the way
+# f44-backgrounds-base does, so nothing here needs re-pinning.
+Provides:       system-backgrounds-kde
 
 # No Recommends on plymouth either, and that is not an oversight. The boot splash
 # theme does nothing without Plymouth, but the images install packages with
@@ -60,6 +100,12 @@ install -m 0644 wallpapers/contents/images/*.png \
 install -m 0644 wallpapers/contents/screenshot.png \
 	%{buildroot}%{_datadir}/wallpapers/OpenQOS/contents/screenshot.png
 
+# desktop-backgrounds-kde owned this path, and it is the name Plasma and some
+# configuration files use when they want "the default wallpaper". Pointing it at
+# ours keeps that working once Fedora's packages are excluded, and makes the answer
+# a distribution wallpaper rather than a missing directory.
+ln -s OpenQOS %{buildroot}%{_datadir}/wallpapers/Default
+
 install -d %{buildroot}%{_datadir}/color-schemes
 install -m 0644 themes/OpenQOS.colors \
 	%{buildroot}%{_datadir}/color-schemes/OpenQOS.colors
@@ -67,6 +113,24 @@ install -m 0644 themes/OpenQOS.colors \
 install -d %{buildroot}%{_datadir}/plymouth/themes/openqos
 install -m 0644 plymouth/openqos/openqos.plymouth plymouth/openqos/watermark.png \
 	%{buildroot}%{_datadir}/plymouth/themes/openqos/
+
+# The logo the initramfs carries. dracut copies /usr/share/pixmaps/system-logo-white.png
+# into the initramfs unconditionally, so whatever sits at this path is what the early
+# boot splash is able to draw when the configured theme cannot be loaded. Fedora's
+# fedora-logos owns this path and is excluded from the image, which is what frees it.
+#
+# Takes the inverse (light-on-dark) mark rather than the primary lockup, because the
+# two consumers of this file both place it on a dark background. The name is
+# upstream's and is kept: it is the path dracut looks for.
+install -d %{buildroot}%{_datadir}/pixmaps
+install -m 0644 logo/dist/openqos-mark-inverse.png \
+	%{buildroot}%{_datadir}/pixmaps/system-logo-white.png
+
+# Pins the splash theme into the initramfs. Relying on dracut's own theme handling
+# is what produced a Fedora logo on the boot screen; see the file's own header.
+install -d %{buildroot}%{_prefix}/lib/dracut/dracut.conf.d
+install -m 0644 dracut/50-openqos-plymouth.conf \
+	%{buildroot}%{_prefix}/lib/dracut/dracut.conf.d/50-openqos-plymouth.conf
 
 install -d %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
 install -d %{buildroot}%{_datadir}/icons/hicolor/256x256/apps
@@ -86,13 +150,47 @@ install -m 0644 icons/hicolor/48x48/apps/openqos-logo.png \
 %files
 %license PROVENANCE.md
 %{_datadir}/wallpapers/OpenQOS
+%{_datadir}/wallpapers/Default
 %{_datadir}/color-schemes/OpenQOS.colors
 %{_datadir}/plymouth/themes/openqos
+%{_datadir}/pixmaps/system-logo-white.png
+%{_prefix}/lib/dracut/dracut.conf.d/50-openqos-plymouth.conf
 %{_datadir}/icons/hicolor/scalable/apps/openqos-logo.svg
 %{_datadir}/icons/hicolor/256x256/apps/openqos-logo.png
 %{_datadir}/icons/hicolor/48x48/apps/openqos-logo.png
 
+# ----------------------------------------------------------------- scriptlet ---
+%posttrans
+# /usr/share/wallpapers/Fedora is a symlink owned by kde-settings-plasma, and it is
+# the last place an OpenQOS image says "Fedora" where a user can see it: Plasma's
+# wallpaper picker lists it by name. The artwork behind it is already ours, because
+# kde-settings-plasma points Fedora at /usr/share/wallpapers/Default and this
+# package points Default at OpenQOS. Only the label was left.
+#
+# There is no declarative way to remove it. kde-settings-plasma is required by
+# plasma-workspace, so no exclude reaches it, and rpm has no "drop this file"
+# primitive. A scriptlet is the only mechanism that works.
+#
+# %posttrans rather than %post, deliberately: within one dnf transaction the install
+# order is not ours to choose, and kde-settings-plasma may be installed after this
+# package. %posttrans runs once the transaction is complete, so a later install
+# cannot put the symlink back.
+#
+# Accepted consequence: `rpm -V kde-settings-plasma` reports one missing file for as
+# long as this package is installed. Nothing reads the path, and the alternative is a
+# name in the wallpaper picker that contradicts every other surface of the system.
+#
+# The test is for a symlink rather than mere existence, so that a future Fedora
+# release shipping a real directory here is left alone instead of deleted.
+if [ -L %{_datadir}/wallpapers/Fedora ]; then
+	rm -f %{_datadir}/wallpapers/Fedora
+fi
+
 %changelog
+* Tue Oct 13 2026 OpenQOS contributors - 0.1-2
+- Provide system-backgrounds-kde so Fedora's wallpaper packages can be excluded,
+  ship /usr/share/wallpapers/Default for the paths desktop-backgrounds-kde owned,
+  and drop the Fedora-named wallpaper symlink in %posttrans.
 * Mon Oct 12 2026 OpenQOS contributors - 0.1-1
 - Initial branding: mark and lockup in light and dark variants, default wallpaper,
   OpenQOS Plasma colour scheme, Plymouth boot splash, and the hicolor icon named by

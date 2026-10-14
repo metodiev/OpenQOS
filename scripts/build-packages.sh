@@ -115,46 +115,50 @@ if [[ "${#built[@]}" -eq 0 ]]; then
 	exit 1
 fi
 
-# --- identity version guard ---------------------------------------------------
+# --- release capability guard -------------------------------------------------
 #
-# fedora-release-common requires `fedora-release-identity = X-Y`, an exact match
-# on a virtual name, and X-Y is bumped with every Fedora update. Our identity
-# package has to provide that same version. If it does not, dnf quietly falls
-# back to another Fedora flavour — and the failure surfaces much later, during an
-# image build, as
+# OpenQOS excludes Fedora's release packages, so openqos-release has to satisfy the
+# requirements that made them necessary. Two packages ask, in two forms, and rpm
+# matches both literally:
 #
-#   file /usr/lib/os-release conflicts between attempted installs of
-#   openqos-release and fedora-release-identity-<some other flavour>
+#   setup        Requires: system-release        (bare)
+#   fedora-repos Requires: system-release(44)    (release number in the name)
 #
-# which gives no hint that the cause is a stale version pin. So check it here,
-# where the fix is obvious.
+# The second moves with the base, which is why it is checked rather than trusted.
+# If openqos-release stops providing it, the bootstrap transaction finds no
+# provider for system-release and fails — or, worse, dnf keeps an older
+# fedora-release alive and the exclusion quietly stops doing anything.
 #
 # The query enables updates-testing because that matches what the *image* build
 # resolves: Fedora's upstream core.xml enables fedora, updates and
 # updates-testing. Querying only this VM's enabled repos would understate the
-# version and let a stale pin through.
-required_identity="$(dnf5 repoquery --enablerepo=updates-testing --latest-limit 1 \
-	--requires fedora-release-common 2>/dev/null |
-	sed -n 's/^fedora-release-identity = //p' | head -n1)"
+# required release number and let a stale pin through.
+required_release="$(dnf5 repoquery --enablerepo=updates-testing --latest-limit 1 \
+	--requires fedora-repos 2>/dev/null |
+	sed -n 's/^system-release(\([0-9][0-9]*\))$/\1/p' | head -n1)"
 
 for candidate in "${built[@]}"; do
 	[[ "${candidate}" == *"/openqos-release-"* ]] || continue
-	if [[ -z "${required_identity}" ]]; then
-		echo "warning: could not determine the fedora-release-identity version required" >&2
-		echo "         by fedora-release-common; skipping the identity guard." >&2
+	if [[ -z "${required_release}" ]]; then
+		echo "warning: could not determine the system-release(N) capability required" >&2
+		echo "         by fedora-repos; skipping the release capability guard." >&2
 		break
 	fi
-	if rpm -qp --provides "${candidate}" | grep -qx "fedora-release-identity = ${required_identity}"; then
-		echo "Identity guard: ${required_identity} satisfied by $(basename "${candidate}")"
+	release_provides="$(rpm -qp --provides "${candidate}")"
+	missing=0
+	for capability in system-release "system-release(${required_release})"; do
+		grep -qxF -- "${capability}" <<<"${release_provides}" || missing=1
+	done
+	if [[ "${missing}" -eq 0 ]]; then
+		echo "Release guard: system-release and system-release(${required_release}) satisfied by $(basename "${candidate}")"
 	else
-		echo "error: identity version mismatch." >&2
-		echo "       fedora-release-common requires fedora-release-identity = ${required_identity}" >&2
+		echo "error: release capability mismatch." >&2
+		echo "       fedora-repos requires system-release(${required_release}) and setup requires system-release" >&2
 		echo "       $(basename "${candidate}") provides:" >&2
-		rpm -qp --provides "${candidate}" | grep fedora-release-identity | sed 's/^/         /' >&2
+		grep -- system-release <<<"${release_provides}" | sed 's/^/         /' >&2
 		echo >&2
-		echo "       Set these in packages/openqos-release/openqos-release.spec, then rebuild:" >&2
-		echo "         Version:               ${required_identity%-*}" >&2
-		echo "         %global fedora_release ${required_identity#*-}" >&2
+		echo "       Set this in packages/openqos-release/openqos-release.spec, then rebuild:" >&2
+		echo "         Version:        ${required_release}" >&2
 		exit 1
 	fi
 done

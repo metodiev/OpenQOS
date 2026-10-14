@@ -1,0 +1,91 @@
+# OpenQOS live-ISO GRUB template (x86_64).
+#
+# SPDX-FileCopyrightText: Fedora Project contributors
+# SPDX-FileCopyrightText: OpenQOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# The copyright line above is Fedora's and is kept because this file is
+# derived from theirs: their descriptions are GPL-3.0-or-later, and a derived
+# file keeps the notice. OpenQOS's contribution is the substitution described
+# below and nothing else.
+#
+# Derived from Fedora's own template at the pinned upstream revision
+# (upstream/grub-x86.cfg.iso-template) by one substitution: the GRUB menu class
+# OpenQOS claims instead of the one Fedora claims. tests/check-upstream-drift.sh
+# asserts that this body differs from upstream's in those three lines and nothing
+# else, so the exact before-and-after is checked rather than described.
+#
+# That substitution is not spelled out here on purpose. KIWI copies this header
+# into the generated /boot/grub2/grub.cfg, and a shipped bootloader config should
+# not carry another distribution's name even in a comment.
+#
+# Nothing else is changed, and that is deliberate. This is bootloader
+# configuration for media that has to boot on real hardware; rewriting it to look
+# like ours would risk the boot for a cosmetic gain. The class selects an icon and
+# a colour from a GRUB theme, and OpenQOS ships no GRUB theme, so today it only
+# affects the default menu colours.
+#
+# Unlike the aarch64 template, upstream's x86_64 copy branches on grub_platform,
+# because it has to serve both EFI and legacy BIOS firmware. That branch is kept
+# exactly as upstream wrote it: it is what lets one medium boot on a UEFI virtual
+# machine and on BIOS hardware, and it is not ours to simplify.
+#
+# It is staged into the description directory under upstream's filename, because
+# that is the name upstream's `grub_template` attribute asks for and KIWI resolves
+# it against the description root. scripts/build-image.sh prefers this file and
+# says so when it does, so the substitution is never invisible.
+#
+# KIWI substitutes its own placeholders throughout this file before GRUB ever sees
+# it, using Python's string.Template rules, and it does not skip comments: writing
+# a placeholder-looking sequence in this header is enough to fail the build with
+# "Invalid placeholder". So none appear here. Anything that has to reach GRUB as a
+# literal dollar sign is written with the dollar doubled.
+
+# Inspired by the config used for lorax-built live media
+
+set default="1"
+
+if [ "$$grub_platform" == "efi" ]; then
+	function load_video {
+		insmod efi_gop
+		insmod efi_uga
+		insmod video_bochs
+		insmod video_cirrus
+		insmod all_video
+	}
+	set basicgfx="nomodeset"
+else
+	function load_video {
+		insmod all_video
+	}
+	set basicgfx="nomodeset vga=791"
+fi
+
+load_video
+set gfxpayload=keep
+insmod gzio
+insmod part_gpt
+insmod ext2
+
+terminal_input console
+terminal_output ${terminal_output}
+
+set timeout=${boot_timeout}
+set timeout_style=${boot_timeout_style}
+
+search ${search_params}
+
+menuentry "Start ${title}" --class openqos --class gnu-linux --class gnu --class os {
+	linux ($$root)${bootpath}/${kernel_file} ${boot_options}
+	initrd ($$root)${bootpath}/${initrd_file}
+}
+menuentry "Test this media & start ${title}" --class openqos --class gnu-linux --class gnu --class os {
+	linux ($$root)${bootpath}/${kernel_file} ${boot_options} rd.live.check
+	initrd ($$root)${bootpath}/${initrd_file}
+}
+submenu "Troubleshooting -->" {
+	menuentry "Start ${title} in basic graphics mode" --class openqos --class gnu-linux --class gnu --class os {
+		linux ($$root)${bootpath}/${kernel_file} ${boot_options} $${basicgfx}
+		initrd ($$root)${bootpath}/${initrd_file}
+	}
+}

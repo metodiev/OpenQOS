@@ -101,44 +101,71 @@ fi
 
 echo "Result: only the documented delta. Upstream has not added anything we are missing."
 
-# --- the GRUB template --------------------------------------------------------
+# --- the GRUB templates -------------------------------------------------------
 #
-# kiwi/templates/grub-arm.cfg.iso-template shadows upstream's file of the same
-# name because that is the name upstream's type asks for. The claim made in that
-# file is that its *body* is byte-identical to upstream's except for the menu
-# class, and a claim like that is worth checking rather than asserting. Our own
-# header comment is stripped first, so it cannot mask a real difference.
+# Each file under kiwi/templates/ shadows upstream's file of the same name,
+# because that is the name upstream's `grub_template` attribute asks for and KIWI
+# resolves it against the description root. The claim each one makes is that its
+# *body* is byte-identical to upstream's except for the menu class, and a claim
+# like that is worth checking rather than asserting. Our own header comment is
+# stripped first, so it cannot mask a real difference.
+#
+# Every architecture is listed here rather than checking one by name. A template
+# that is added and not checked is exactly the silent drift this script exists to
+# make audible, and the list is short enough that keeping it complete is cheap.
 
-upstream_grub="${repo_root}/kiwi/upstream/grub-arm.cfg.iso-template"
-our_grub="${repo_root}/kiwi/templates/grub-arm.cfg.iso-template"
+templates=(
+	"grub-arm.cfg.iso-template"
+	"grub-x86.cfg.iso-template"
+)
 
-if [[ ! -f "${our_grub}" ]]; then
+checked_templates=0
+
+for template in "${templates[@]}"; do
+	upstream_grub="${repo_root}/kiwi/upstream/${template}"
+	our_grub="${repo_root}/kiwi/templates/${template}"
+
+	if [[ ! -f "${our_grub}" ]]; then
+		continue
+	fi
+
+	if [[ ! -f "${upstream_grub}" ]]; then
+		echo
+		echo "GRUB template ${template}: ours exists but upstream has none to" >&2
+		echo "                          derive from. The claim it makes cannot be checked." >&2
+		exit 1
+	fi
+
 	echo
-	echo "GRUB template: not present, nothing to check."
+	echo "Comparing kiwi/templates/${template} body against upstream:"
+
+	# Our header ends at the first blank line after the trailing marker comment.
+	# Everything after that blank line is upstream's content.
+	body_start="$(awk 'BEGIN { seen = 0 } /^$/ { if (seen) { print NR + 1; exit } } { if ($0 ~ /^#/) seen = 1; else seen = 0 }' "${our_grub}")"
+	if [[ -z "${body_start}" ]]; then
+		echo "  error: cannot find where the header ends in ${our_grub}" >&2
+		exit 1
+	fi
+
+	unexpected="$(diff "${upstream_grub}" <(tail -n "+${body_start}" "${our_grub}") | grep '^[<>]' | grep -v -- '--class' || true)"
+	if [[ -n "${unexpected}" ]]; then
+		echo "  DRIFT — the body differs from upstream by more than the menu class:" >&2
+		printf '    %s\n' "${unexpected}" >&2
+		exit 1
+	fi
+
+	# Count upstream-side lines only: diff reports each change twice, once as "<"
+	# and once as ">", and the number of changed lines is the "<" side.
+	substitutions="$(diff "${upstream_grub}" <(tail -n "+${body_start}" "${our_grub}") | grep -c '^<.*--class' || true)"
+	echo "  body identical to upstream except ${substitutions} lines, all of them the menu class"
+	checked_templates=$((checked_templates + 1))
+done
+
+if [[ "${checked_templates}" -eq 0 ]]; then
+	echo
+	echo "GRUB templates: none present, nothing to check."
 	exit 0
 fi
 
 echo
-echo "Comparing kiwi/templates/grub-arm.cfg.iso-template body against upstream:"
-
-# Our header ends at the first blank line after the trailing marker comment.
-# Everything after that blank line is upstream's content.
-body_start="$(awk 'BEGIN { seen = 0 } /^$/ { if (seen) { print NR + 1; exit } } { if ($0 ~ /^#/) seen = 1; else seen = 0 }' "${our_grub}")"
-if [[ -z "${body_start}" ]]; then
-	echo "  error: cannot find where the header ends in ${our_grub}" >&2
-	exit 1
-fi
-
-unexpected="$(diff "${upstream_grub}" <(tail -n "+${body_start}" "${our_grub}") | grep '^[<>]' | grep -v -- '--class' || true)"
-if [[ -n "${unexpected}" ]]; then
-	echo "  DRIFT — the body differs from upstream by more than the menu class:" >&2
-	printf '    %s\n' "${unexpected}" >&2
-	exit 1
-fi
-
-# Count upstream-side lines only: diff reports each change twice, once as "<" and
-# once as ">", and the number of changed lines is the "<" side.
-substitutions="$(diff "${upstream_grub}" <(tail -n "+${body_start}" "${our_grub}") | grep -c '^<.*--class' || true)"
-echo "  body identical to upstream except ${substitutions} lines, all of them the menu class"
-echo
-echo "Result: the GRUB template differs only in the way it says it does."
+echo "Result: every GRUB template present differs only in the way it says it does."

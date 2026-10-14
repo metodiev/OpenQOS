@@ -9,12 +9,18 @@
   them lets every profile share the same base packages and account setup while only
   the disk-based ones inherit this type.
 
-  The type is modelled on Fedora's `Cloud-Base-Generic` aarch64 type in
-  upstream/teams/cloud/cloud.xml, which is the closest *proven* configuration for
-  an aarch64 system that boots under UEFI in a virtual machine. Deriving from
-  something Fedora actually ships is deliberate: aarch64 boot layout (ESP size,
-  btrfs subvolumes, GRUB on a serial console) is easy to get subtly wrong from
-  first principles.
+  Both types are modelled on Fedora's `Cloud-Base-Generic` types in
+  upstream/teams/cloud/cloud.xml, which are the closest *proven* configuration for
+  a system that boots under UEFI in a virtual machine. Fedora defines one per
+  architecture and so do we. Deriving from something Fedora actually ships is
+  deliberate: the boot layout (ESP size, btrfs subvolumes, GRUB on a serial
+  console) is easy to get subtly wrong from first principles.
+
+  The two blocks differ in exactly one thing: the kernel's serial console. aarch64's
+  PL011 is `ttyAMA0`; the PC's 16550 is `ttyS0`. Fedora keeps the filesystem, the
+  firmware, the ESP size and the GRUB console identical across the two, and so do
+  we. They cannot be merged into one <type>: `arch` is a preference attribute, so a
+  single block cannot carry a different command line per architecture.
 
   Deviations from that upstream type, and why:
     * rootfs_label="openqos" instead of "fedora"
@@ -27,7 +33,7 @@
 -->
 <image>
 	<profiles>
-		<profile name="OpenQOS-Disk" description="Shared OpenQOS disk-image layout (aarch64 UEFI)">
+		<profile name="OpenQOS-Disk" description="Shared OpenQOS disk-image layout (aarch64 and x86_64, UEFI)">
 			<requires profile="OpenQOS-Base"/>
 			<!--
 			  Boot-core selection belongs here rather than in the base profile,
@@ -53,6 +59,34 @@
 		<type image="oem" format="qcow2"
 		      filesystem="btrfs" btrfs_root_is_subvolume="true" btrfs_set_default_volume="false" fsmountoptions="compress=zstd:1"
 		      kernelcmdline="no_timer_check console=tty1 console=ttyAMA0,115200n8 systemd.firstboot=off"
+		      devicepersistency="by-uuid"
+		      bootpartition="false" efipartsize="100" firmware="uefi"
+		      rootfs_label="openqos"
+		      >
+			<bootloader name="grub2" bls="true" console="serial" timeout="5"/>
+			<size unit="G">16</size>
+			<systemdisk>
+				<volume name="@root=root"/>
+				<volume name="boot" parent="/"/>
+				<volume name="home" parent="/"/>
+				<volume name="var" parent="/"/>
+			</systemdisk>
+			<oemconfig>
+				<oem-resize>false</oem-resize>
+			</oemconfig>
+		</type>
+	</preferences>
+
+	<!--
+	  The x86_64 sibling of the block above. Same layout, same firmware, same GRUB
+	  console; the serial console moves from the PL011 to the 16550. Kept as a
+	  separate <type> because the kernel command line is architecture-specific and
+	  `arch` is how KIWI selects a preference block.
+	-->
+	<preferences profiles="OpenQOS-Disk" arch="x86_64">
+		<type image="oem" format="qcow2"
+		      filesystem="btrfs" btrfs_root_is_subvolume="true" btrfs_set_default_volume="false" fsmountoptions="compress=zstd:1"
+		      kernelcmdline="no_timer_check console=tty1 console=ttyS0,115200n8 systemd.firstboot=off"
 		      devicepersistency="by-uuid"
 		      bootpartition="false" efipartsize="100" firmware="uefi"
 		      rootfs_label="openqos"

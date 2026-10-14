@@ -24,11 +24,18 @@
                           profile; it is absent here because nothing requests it.
     plasma-welcome        Installed, and left alone. This is upstream KDE's own
                           welcome application, not Fedora branding.
-    fedora-logos          Installed, and cannot be removed: breeze-icon-theme and
-                          much else require it. Its files are Fedora's marks in
-                          Anaconda and favicon assets. OpenQOS does not reference
-                          any of them, and ships openqos-logo instead.
-    */etc/*-release       Installed: system-release, redhat-release and
+    fedora-logos          Removed, and the note that used to stand here was
+                          wrong. It claimed the package could not be removed
+                          because breeze-icon-theme and much else require it;
+                          they do not. They require the *virtual* name
+                          system-logos, which two packages provide. Excluding
+                          only fedora-logos therefore did not remove the file
+                          anything cares about, it made dnf select generic-logos
+                          instead, and the image then failed to build on a
+                          conflict over /usr/share/pixmaps/system-logo-white.png.
+                          Both providers are excluded now, and openqos-branding
+                          provides system-logos. See kiwi/openqos/base.xml.
+    */etc/*-release       Unchanged. system-release, redhat-release and
                           fedora-release are one symlink chain owned by
                           fedora-release-common, and they name the Fedora *base*.
                           os-release, which every modern tool reads, is ours. See
@@ -40,7 +47,7 @@
 		<profile name="OpenQOS-KDE" description="KDE Plasma desktop stack">
 			<requires profile="KDE-Desktop"/>
 		</profile>
-		<profile name="OpenQOS-KDE-Disk" description="OpenQOS KDE Plasma pre-installed disk image (aarch64, UEFI)">
+		<profile name="OpenQOS-KDE-Disk" description="OpenQOS KDE Plasma pre-installed disk image (aarch64 and x86_64, UEFI)">
 			<requires profile="OpenQOS-Disk"/>
 			<requires profile="OpenQOS-KDE"/>
 		</profile>
@@ -60,7 +67,7 @@
 		  publisher and application id with KIWI's set-type-attr option instead,
 		  which is also how Fedora's own ISO label generator sets them.
 		-->
-		<profile name="OpenQOS-KDE-Live" description="OpenQOS KDE Plasma live installation media (aarch64, UEFI)">
+		<profile name="OpenQOS-KDE-Live" description="OpenQOS KDE Plasma live installation media (aarch64 and x86_64, UEFI)">
 			<requires profile="OpenQOS-Base"/>
 			<requires profile="OpenQOS-KDE"/>
 			<requires profile="LiveInstall"/>
@@ -110,6 +117,24 @@
 	  roadmap; showing a blank preview until then would be worse.
 	-->
 	<packages type="image" patternType="plusRecommended" profiles="OpenQOS-KDE">
+		<!--
+		  The Plymouth module this distribution's boot splash theme declares.
+
+		  openqos-branding ships a theme whose openqos.plymouth sets
+		  ModuleName=two-step, and the boot splash is drawn by Plymouth running out
+		  of the initramfs. The plugin used to arrive by accident: Fedora's
+		  plymouth-theme-spinner requires plymouth-plugin-two-step at an exact
+		  version, and that theme package is now excluded so the Fedora logo stops
+		  appearing at boot. Excluding it took the plugin with it, silently, which
+		  would have left the OpenQOS theme unable to load and Plymouth falling
+		  back to a text splash.
+
+		  Naming it here restores it deliberately. It pulls in
+		  plymouth-graphics-libs and plymouth-plugin-label, which it requires, but
+		  not the Fedora theme or its artwork.
+		-->
+		<package name="plymouth-plugin-two-step"/>
+
 		<file name="staged-kdeglobals" target="/etc/xdg/kdeglobals"/>
 		<file name="staged-mimeapps.list" target="/etc/xdg/mimeapps.list"/>
 		<file name="staged-metadata.json" target="/usr/share/plasma/look-and-feel/org.openqos.desktop/metadata.json"/>

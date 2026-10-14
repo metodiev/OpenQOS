@@ -1,29 +1,28 @@
 # openqos-release — OpenQOS Linux release identification.
 #
 # This is the package that makes the system say what it is. It owns
-# /usr/lib/os-release, which /etc/os-release links to, and it replaces Fedora's
-# identity package: OpenQOS is built from Fedora, but it is not Fedora, and the
-# running system should not claim otherwise.
+# /usr/lib/os-release and the /etc/os-release symlink that points at it, and it
+# replaces Fedora's identity package: OpenQOS is built from Fedora, but it is not
+# Fedora, and the running system should not claim otherwise.
 #
 # ---
 # Why Version here is Fedora's, not ours
 # ---
-# `fedora-release-common` Requires `fedora-release-identity = 44-18` — a
-# *versioned virtual name*, pinned to that package's own version-release, and it
-# is bumped with every Fedora update. Every `fedora-release-identity-*` flavour
-# provides that name. So replacing one flavour is not enough: the replacement has
-# to provide the virtual name at exactly the version the installed
-# fedora-release-common asks for, or dnf simply picks a different flavour and the
-# two fight over /usr/lib/os-release.
+# The version is not ours to choose. Excluding Fedora's release packages makes
+# this package responsible for the requirements that made them necessary, and one
+# of those carries Fedora's release number inside the capability *name*:
 #
-# The exact-match requirement means the version is not ours to choose. This
-# package therefore carries Fedora's version-release, and OpenQOS's own version
-# lives where it belongs: in the os-release content.
+#   setup        Requires: system-release        (bare)
+#   fedora-repos Requires: system-release(44)    (the number is in the name)
+#
+# So the major version tracks Fedora's release, and Release tracks
+# fedora-release-common's, which is bumped with every Fedora update. OpenQOS's own
+# version lives where it belongs: in the os-release content.
 #
 # The coupling is not left to discipline. scripts/build-packages.sh reads the
-# required version from the repositories and refuses to publish if this package
-# does not provide it, so a stale pin fails loudly with instructions rather than
-# surfacing later as a file conflict during an image build.
+# required capability from the repositories and refuses to publish if this package
+# does not provide it, so a stale pin fails loudly, with instructions, rather than
+# surfacing later as an unresolvable requirement during an image build.
 
 # The Fedora version-release our identity replaces, kept separate from Release:
 # because Release: carries %%{?dist}, and the requirement we have to satisfy is
@@ -45,17 +44,33 @@ Source0:        os-release
 
 BuildArch:      noarch
 
-# Satisfies fedora-release-common's versioned requirement. That requirement is
-# what makes the *identity* of the distribution installable at all: with no
-# provider present, dnf is free to pick any of Fedora's 61 flavours.
+# There is deliberately no `fedora-release-identity` Provide here any more, and
+# deliberately no Obsoletes.
 #
-# There is deliberately no Obsoletes here. Obsoleting a flavour looks like the
-# way to take its place, but it only removes that one candidate while the other
-# 60 stay eligible — so dnf simply chooses a different flavour, and the failure
-# reappears under a different name. Which flavour becomes ineligible is decided
-# where the package set is assembled: see the <ignore> for
-# `fedora-release-identity-*` in kiwi/openqos/base.xml.
-Provides:       fedora-release-identity = %{version}-%{fedora_release}
+# The Provide existed because fedora-release-common requires
+# `fedora-release-identity = <version>-<release>` as an exact match. OpenQOS now
+# excludes fedora-release-common itself, along with the rest of that family, so
+# nothing asks for the name. Keeping it would assert a relationship to a package
+# that is not installed.
+#
+# Obsoleting the identity packages was never workable in any case: it removes one
+# candidate out of 61 while the rest stay eligible, so dnf picks another and the
+# failure reappears under a different name. Which candidates are ineligible is
+# decided where the package set is assembled, not here. See the `fedora-release*`
+# ignore in kiwi/openqos/base.xml and kiwi/OpenQOS.kiwi.
+
+# Satisfies the two requirements on the release identity, which is what makes
+# fedora-release removable at all. The forms are not interchangeable:
+#
+#   setup        Requires: system-release        (bare)
+#   fedora-repos Requires: system-release(44)    (the Fedora release number)
+#
+# The second is Fedora's own idiom: a capability whose *name* carries the release
+# number. fedora-release declares both, so this has to as well. %%{version} is
+# already Fedora's release version for the reason described at the top of this
+# file, so these follow the base when the base moves rather than needing an edit.
+Provides:       system-release
+Provides:       system-release(%{version})
 
 %description
 Defines the identity of OpenQOS Linux in /usr/lib/os-release.
@@ -73,8 +88,16 @@ not claim to be Fedora, and it does not claim to be a Red Hat product.
 %install
 install -D -p -m 0644 %{SOURCE0} %{buildroot}%{_prefix}/lib/os-release
 
+# /etc/os-release is the location every tool actually reads, and it is a symlink
+# rather than a second copy so there is one file to edit and no way for the two to
+# disagree. Fedora's release packages own this path; OpenQOS excludes them, and
+# openqos-release would otherwise leave a system with no /etc/os-release at all.
+install -d %{buildroot}%{_sysconfdir}
+ln -s ../usr/lib/os-release %{buildroot}%{_sysconfdir}/os-release
+
 %files
 %{_prefix}/lib/os-release
+%{_sysconfdir}/os-release
 
 %changelog
 * Mon Oct 12 2026 OpenQOS contributors - 44-18

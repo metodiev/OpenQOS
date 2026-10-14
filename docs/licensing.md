@@ -164,19 +164,53 @@ choice.
     *permitted* is a trademark question to settle with Fedora's guidelines, not a
     technical one.
 
-    As implemented at Milestone 7, the replacement is deliberately narrow. We do
-    **not** remove `fedora-release` or `fedora-release-common`, and we do not remove
-    Fedora's attribution: `openqos-release` takes over only `/usr/lib/os-release` —
-    the file that states who the running system is — and it keeps
-    `ID_LIKE="fedora"` and `PLATFORM_ID="platform:f44"` precisely so that the Fedora
-    base remains visible to tooling and to users. This is also why the package
-    provides the `fedora-release-identity` virtual name rather than deleting the
-    packages that reference it: it satisfies Fedora's own packaging interface
-    instead of dismantling it.
+    As first implemented at Milestone 7, that replacement was deliberately narrow.
+    It has since been widened, and this is the record of it. OpenQOS now removes the
+    whole `fedora-release*` family, `fedora-release` and `fedora-release-common`
+    included, so `/etc/system-release`, `/etc/fedora-release` and
+    `/etc/redhat-release` do not exist in an image at all.
+
+    `openqos-release` takes over `/usr/lib/os-release` and the `/etc/os-release`
+    symlink, and it no longer provides the `fedora-release-identity` virtual name:
+    nothing asks for it once `fedora-release-common` is gone, and providing it would
+    assert a relationship to a package that is not installed. It still provides
+    `system-release` and `system-release(44)`, which is what `setup` and
+    `fedora-repos` require — so this is a removal that leaves the packaging
+    interface satisfied, not a packaging fight.
+
+    What is *not* removed is the attribution, and that distinction is the point.
+    `openqos-release` keeps `ID_LIKE="fedora"` and `PLATFORM_ID="platform:f44"` so
+    the Fedora base stays visible to tooling and to users, and `fedora-repos` stays
+    installed. Removing the name from `/etc` is a statement about what the running
+    system *is*; the base, and the credit for it, are still declared.
+
+    Fedora's marks are why this matters for compliance rather than tidiness. A file
+    named `fedora-release` whose contents read "Fedora release 44 (Forty Four)"
+    invites exactly the reading that Fedora's trademark guidelines reserve — that
+    this is a Fedora product rather than a derived one. Removing it is the
+    conservative choice, and it is a related but separate decision from the
+    trademark question above.
 * **Asset provenance.** Every wallpaper, icon and font we ship must be our own work or
   under a license that permits our use and redistribution. Third-party assets with
   unclear or non-commercial terms must not enter `branding/`. A provenance file per
   asset is cheap insurance.
+
+  This is also why Fedora's wallpaper packages are excluded. `f44-backgrounds-base`
+  ships CC-BY-SA-4.0 wallpaper sets together with the attribution that license
+  requires, and `f44-backgrounds-kde` mirrors them into `/usr/share/wallpapers/F44`
+  for KDE. Both are now excluded, alongside the `desktop-backgrounds-kde`
+  metapackage that reached them, so the obligation does not arise: the image ships
+  only OpenQOS artwork, `branding/` records its provenance, and
+  `/usr/share/wallpapers/Default` — a path `desktop-backgrounds-kde` owned — now
+  points at the OpenQOS wallpaper. Excluding them also takes "Fedora" and "F44" out
+  of Plasma's wallpaper picker.
+
+  One trace is deliberately left, and it is worth recording rather than chasing
+  further. `/usr/share/wallpapers/Fedora` is a symlink owned by
+  `kde-settings-plasma`, which `plasma-workspace` requires, so no exclude reaches
+  it; `openqos-branding` deletes it in `%posttrans` instead. Where that scriptlet
+  cannot run, the name survives — but the artwork behind it is OpenQOS's either way,
+  because the symlink resolves to `/usr/share/wallpapers/Default`.
 * **Nothing here is legal advice**, and none of it substitutes for review by a lawyer
   qualified in the relevant jurisdiction before a public release.
 

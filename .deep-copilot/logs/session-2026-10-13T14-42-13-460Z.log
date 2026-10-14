@@ -1,0 +1,6 @@
+[2026-10-13T14:42:13.461Z] [INIT] Deep Copilot debug log started. file=/home/miroslav/Documents/workspace/OpenQOS/OpenQOS/.deep-copilot/logs/session-2026-10-13T14-42-13-460Z.log
+[2026-10-13T14:42:13.461Z] [ACTIVATE] {"version":"0.43.1"}
+[2026-10-13T14:42:13.462Z] [PROVIDERS_LOADED] {"count":4,"ids":["anthropic","custom","deepseek","openai"]}
+[2026-10-13T14:42:13.462Z] [TERMINAL_MONITOR_STARTED] {}
+[2026-10-13T14:42:13.462Z] [STATUSBAR_REGISTERED] {"id":"deepseekAgent.statusBar"}
+[2026-10-13T14:42:13.466Z] [INLINE_COMPLETION_REGISTERED]

@@ -3,6 +3,14 @@
 /build/
 /out/
 /output/
+
+# Release output. scripts/build-image.sh copies the finished artefacts here for
+# hand-off, because kiwi/build/ is scratch and a --clean build replaces it. The
+# directory is named after the architecture inside each file name, so an x86_64 and
+# an aarch64 build coexist. Only the README is tracked, so that a fresh clone has
+# the directory and knows what it is for.
+/dist/*
+!/dist/README.md
 *.iso
 *.sha256
 *.qcow2

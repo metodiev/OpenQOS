@@ -77,12 +77,20 @@ if [[ ! -d "${description_dir}/upstream" ]]; then
 fi
 
 host_arch="$(uname -m)"
-if [[ "${host_arch}" != "aarch64" ]]; then
-	echo "error: this description defines only an aarch64 image type," >&2
-	echo "       and KIWI expects the image architecture to match the host." >&2
-	echo "       Current host: ${host_arch}" >&2
-	exit 1
-fi
+# KIWI builds an image for the architecture of the machine it runs on — there is
+# no cross-architecture option, and the image type is chosen by matching the host
+# against the `arch` attribute in kiwi/openqos/disk.xml. So the host arch must be
+# one the description actually defines a type for, and this is where that is
+# stated. Without it KIWI fails later with "no image type defined", which does
+# not name the architecture that is missing.
+case "${host_arch}" in
+	aarch64 | x86_64) ;;
+	*)
+		echo "error: no image type is defined for host architecture '${host_arch}'." >&2
+		echo "       OpenQOS defines types for aarch64 and x86_64." >&2
+		exit 1
+		;;
+esac
 
 name="${output_name:-${profile}}"
 scratch_dir="${scratch_root}/${name}"
@@ -344,10 +352,43 @@ manifest="${artefact_dir}/MANIFEST.txt"
 	sha256sum -- ./* 2>/dev/null | grep -v "MANIFEST.txt" || true
 ) >> "${manifest}"
 
+# ------------------------------------------------------------------- dist ---
+# A hand-off location inside the repository. kiwi/build/ is scratch: a --clean
+# build replaces it, and the directory name comes from --output, so an artefact
+# needed for a release page or a VirtualBox session should not be read from there.
+# dist/ is the stable copy, and it keeps the architecture in the file name so an
+# x86_64 and an aarch64 build sit side by side without colliding.
+#
+# dist/ is gitignored for the same reason kiwi/build/ is; see the note at the top of
+# .gitignore. Only dist/README.md is tracked, so the directory explains itself in a
+# fresh clone.
+dist_dir="${repo_root}/dist"
+mkdir -p -- "${dist_dir}"
+
+dist_published=0
+for artefact in "${artefact_dir}"/*; do
+	[[ -f "${artefact}" ]] || continue
+	base="$(basename -- "${artefact}")"
+	# The uncompressed disk image is an intermediate and is reproducible from the
+	# requested format, so it is skipped when a converted format exists. A build
+	# that requested raw has nothing else, so this is a guard, not a policy.
+	case "${base}" in
+		*.raw) continue ;;
+	esac
+	cp -f -- "${artefact}" "${dist_dir}/${base}"
+	dist_published=$((dist_published + 1))
+done
+
+if [[ "${dist_published}" -eq 0 ]]; then
+	echo "error: nothing was published to ${dist_dir}" >&2
+	exit 1
+fi
+
 echo
 echo "=============================================================="
 echo " Build complete"
 echo " Artefacts : ${artefact_dir}"
+echo " Hand-off  : ${dist_dir}"
 echo " Manifest  : ${manifest}"
 echo "=============================================================="
 cat -- "${manifest}"

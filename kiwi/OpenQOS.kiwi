@@ -72,14 +72,35 @@
 	  basic` here, before any image package was considered.
 
 	  That mattered because KIWI reads <ignore> per packages *section type*, not
-	  per profile: the ignore in openqos/base.xml is in an `image` section and
-	  had no effect on the bootstrap transaction. A flavour installed during
+	  per profile: an ignore in openqos/base.xml is in an `image` section and has
+	  no effect on the bootstrap transaction. A flavour installed during
 	  bootstrap then conflicts with openqos-release for the rest of the build.
 	  So the family is excluded here as well, in the section that actually
 	  installs it.
+
+	  The ignore is a glob over the whole family rather than three named
+	  packages, because that family is reachable through several capabilities
+	  and each is a separate way to lose. `setup` requires `system-release`,
+	  `fedora-repos` requires `system-release(44)`, and `fedora-release-common`
+	  requires `fedora-release-identity` at an exact version. fedora-release,
+	  every fedora-release-<flavour>, and the -common and -identity packages all
+	  provide some of them, and all of them own or install /usr/lib/os-release.
+	  openqos-release provides all three capabilities, so excluding the family
+	  leaves it as the only candidate.
+
+	  generic-release is the same trap in a different place, and it is named
+	  because the first attempt at this missed it. Fedora ships a generic
+	  counterpart to each of its branded packages, and excluding only the branded
+	  one hands the job to the generic one instead of removing it. That already
+	  happened once with fedora-logos, where generic-logos took over and the
+	  build failed on a file conflict. generic-release provides
+	  `system-release`, `system-release(44)` and `fedora-release-identity`, and
+	  its only file is /usr/lib/os-release, which is the path openqos-release
+	  owns.
 	-->
 	<packages type="bootstrap">
 		<package name="filesystem"/>
-		<ignore name="fedora-release-identity-*"/>
+		<ignore name="fedora-release*"/>
+		<ignore name="generic-release*"/>
 	</packages>
 </image>

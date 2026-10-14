@@ -113,11 +113,119 @@
 		  profiles= attribute, so this applies to all OpenQOS profiles — which is
 		  the intent: OpenQOS identity is not a per-profile choice.
 
+		  The glob covers more than the identity flavours because the family
+		  serves several requirements, and satisfying one of them is not enough:
+
+		    system-release                  required by setup
+		    system-release(44)              required by fedora-repos
+		    fedora-release-identity = 44-18 required by fedora-release-common
+
+		  fedora-release, every fedora-release-<flavour>, and the -common and
+		  -identity packages provide some of these, and between them they own
+		  /etc/system-release, /etc/fedora-release, /etc/redhat-release and
+		  /usr/lib/os-release. openqos-release provides all three capabilities, so
+		  excluding the family leaves it as the only candidate and the three /etc
+		  files are not installed at all.
+
+		  generic-release is Fedora's unbranded counterpart to all of it. It
+		  provides the same capabilities, and it owns /usr/lib/os-release as its
+		  only file. It is listed because excluding only the branded package hands
+		  the work to the generic one rather than removing it, which is what the
+		  build reported: "generic-release conflicts with system-release provided
+		  by openqos-release". The fedora-logos and generic-logos pair below is
+		  the same trap.
+
 		  This section is type="image". The bootstrap transaction installs the
-		  same flavour family by a different path and needs its own ignore; see
+		  same family by a different path and needs its own ignore; see
 		  kiwi/OpenQOS.kiwi.
 		-->
-		<ignore name="fedora-release-identity-*"/>
+		<ignore name="fedora-release*"/>
+		<ignore name="generic-release*"/>
+
+		<!--
+		  Fedora's logo files and the boot splash art it ships. Removing a package
+		  is only safe if nothing installed requires it, so each of these was
+		  checked by asking the built system which packages require it (rpm's
+		  reverse-dependency query, run inside the image) rather than against the
+		  repositories, where installed-set facts are not visible. That check is
+		  also why these are excludes and not Obsoletes: an exclude removes the
+		  package, and there is nothing left that needs the name.
+
+		    fedora-logos          The Fedora logos, including
+		                          /usr/share/pixmaps/system-logo-white.png. That
+		                          path matters out of proportion to its size:
+		                          dracut's Plymouth script copies it into the
+		                          initramfs unconditionally, so it is what the
+		                          early boot splash draws when the configured theme
+		                          cannot be loaded. Nothing installed requires this
+		                          package, and no installer is installed, so the
+		                          /usr/share/anaconda artwork it carries is orphaned
+		                          rather than load-bearing. openqos-branding now
+		                          supplies our own file at that path.
+
+		    generic-logos         The stand-in that provides the same virtual
+		                          `system-logos` name and owns the same
+		                          system-logo-white.png. Excluding only fedora-logos
+		                          did not remove that file, it left dnf free to
+		                          choose this package instead, and the image failed
+		                          to build with a file conflict between the two.
+		                          That is what makes the excludes below a pair
+		                          rather than a single entry. openqos-branding
+		                          provides `system-logos`, so the requirement stays
+		                          satisfied with both of them gone.
+
+		    plymouth-theme-spinner Owns *both* /usr/share/plymouth/themes/bgrt and
+		    plymouth-system-theme  /usr/share/plymouth/themes/spinner, and the
+		                          spinner watermark is the Fedora logo. This is the
+		                          artwork behind the Fedora logo on the boot screen:
+		                          the OpenQOS theme was configured, but it was not
+		                          reaching the initramfs, so Plymouth fell back to
+		                          these.
+
+		                          Removing plymouth-theme-spinner has a consequence
+		                          that is easy to miss. It requires
+		                          plymouth-plugin-two-step at an exact version, and
+		                          two-step is the module the OpenQOS theme itself
+		                          declares. Excluding the theme silently took the
+		                          plugin with it, which would have left our theme
+		                          unable to load at all. kde.xml names the plugin
+		                          explicitly for that reason.
+
+		    desktop-backgrounds-kde Fedora's wallpapers: the exclusions that needed
+		    f44-backgrounds-kde      a Provides rather than a plain removal.
+		    f44-backgrounds-base     f44-backgrounds-base ships
+		                          /usr/share/backgrounds/f44, and
+		                          f44-backgrounds-kde ships
+		                          /usr/share/wallpapers/F44, which is what
+		                          Plasma's wallpaper picker offers as "F44".
+
+		                          They cannot simply be removed.
+		                          desktop-backgrounds-kde is a metapackage
+		                          requiring f44-backgrounds-kde, and
+		                          kde-settings-plasma, kde-settings-plasmalogin
+		                          and plasma-setup all require the capability it
+		                          provides, which is `system-backgrounds-kde`.
+		                          openqos-branding provides that capability, so no
+		                          Fedora release-specific name has to be
+		                          reproduced and no version has to be pinned.
+		                          The name would otherwise churn with every Fedora
+		                          release.
+
+		                          openqos-branding also ships
+		                          /usr/share/wallpapers/Default, which
+		                          desktop-backgrounds-kde owned.
+
+		  Not listed because nothing installs them: the f44-backgrounds
+		  metapackage, and f44-backgrounds-budgie, -gnome, -mate and -xfce. Those
+		  are the other desktop spins; only the KDE one was reachable here.
+		-->
+		<ignore name="fedora-logos"/>
+		<ignore name="generic-logos"/>
+		<ignore name="plymouth-theme-spinner"/>
+		<ignore name="plymouth-system-theme"/>
+		<ignore name="desktop-backgrounds-kde"/>
+		<ignore name="f44-backgrounds-kde"/>
+		<ignore name="f44-backgrounds-base"/>
 
 		<package name="glibc-langpack-en"/>
 		<package name="kernel-modules"/>

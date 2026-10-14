@@ -477,8 +477,9 @@ when an image is built:
 
 1. `/usr/lib/os-release` is owned by `openqos-release` — the installed system
    identifies as OpenQOS and not as the Fedora base.
-2. No `fedora-release-identity-*` package is installed — no Fedora flavour claims
-   the medium.
+2. No `fedora-release*` or `generic-release*` package is installed, so
+   `/etc/system-release`, `/etc/fedora-release` and `/etc/redhat-release` do not
+   exist — no Fedora flavour, and no Fedora release name, claims the medium.
 3. If a display manager is installed, either an account with a password exists or
    Plasma Setup is present, enabled and not marked done — the machine is enterable.
 
@@ -510,8 +511,8 @@ upstream content:
 
 | Package | Contents | Architecture |
 | --- | --- | --- |
-| `openqos-release` | `/usr/lib/os-release` (the OpenQOS identity), and the virtual `fedora-release-identity` name that `fedora-release-common` requires | `noarch` |
-| `openqos-branding` | `/usr/share/wallpapers/OpenQOS`, the Plasma colour scheme, the Plymouth theme, and the hicolor icon named by `LOGO=openqos-logo` | `noarch` |
+| `openqos-release` | `/usr/lib/os-release` (the OpenQOS identity), `/etc/os-release`, and the `system-release` and `system-release(<N>)` capabilities that `setup` and `fedora-repos` require | `noarch` |
+| `openqos-branding` | `/usr/share/wallpapers/OpenQOS`, `/usr/share/wallpapers/Default`, the Plasma colour scheme, the Plymouth theme and its dracut snippet, `/usr/share/pixmaps/system-logo-white.png`, and the hicolor icon named by `LOGO=openqos-logo` | `noarch` |
 | `openqos-config-desktop` | Plasma panel/launcher/tray defaults, default applications, accessibility and locale defaults | `noarch` |
 | `openqos-config-<arch>` | Architecture-specific defaults | per-arch |
 
@@ -570,9 +571,9 @@ Fedora splits "who am I" across packages:
 
 | Package | Owns | Ours? |
 | --- | --- | --- |
-| `fedora-release-common` | `/etc/os-release` (a symlink to `../usr/lib/os-release`), `/etc/system-release`, the CPE file | no — kept, unmodified |
+| `fedora-release-common` | `/etc/os-release` (a symlink to `../usr/lib/os-release`), `/etc/system-release`, `/etc/redhat-release`, the CPE file | no — **not installed** |
 | `fedora-release-identity-<flavour>` | `/usr/lib/os-release` | no — not installed |
-| `openqos-release` | `/usr/lib/os-release` | yes |
+| `openqos-release` | `/usr/lib/os-release`, `/etc/os-release` | yes |
 
 `fedora-release-common` requires the **versioned virtual name**
 `fedora-release-identity = <fedora-version>-<fedora-release>`, and 61 flavour
@@ -580,22 +581,48 @@ packages provide it — one per Fedora edition and spin. Because no profile name
 flavour, dnf selects one freely, and `fedora-release-identity-budgie` was what it
 chose for an image with no desktop.
 
-Two consequences shape the design:
+`fedora-release` requires `fedora-release-common`, and is in turn what satisfies two
+requirements on the release identity:
 
-* `openqos-release` must provide that virtual name at exactly the version
-  `fedora-release-common` asks for. The version tracks Fedora's updates and is
-  therefore not ours to choose, so the package carries Fedora's version-release
-  (`44-18`) and the OpenQOS version lives in the os-release content.
-  `scripts/build-packages.sh` reads the required version from the repositories and
-  refuses to publish a package that does not provide it.
-* Every flavour is made ineligible, so the only remaining provider is ours:
-  `<ignore name="fedora-release-identity-*"/>`. KIWI converts this to dnf's exclude
-  option, which accepts a glob. Because `<ignore>` is read per packages **section
-  type** and not per profile, the same rule is needed in the `bootstrap` section
-  (`kiwi/OpenQOS.kiwi`) as well as the `image` section
+| Requirer | Requires |
+| --- | --- |
+| `setup` | `system-release` |
+| `fedora-repos` | `system-release(44)` |
+
+The second is Fedora's own idiom: a capability whose *name* carries the release
+number. `fedora-release` declares both.
+
+Three consequences shape the design:
+
+* `openqos-release` must provide the virtual name at exactly the version
+  `fedora-release-common` asks for, plus `system-release` and `system-release(44)`.
+  The version tracks Fedora's updates and is therefore not ours to choose, so the
+  package carries Fedora's version-release (`44-18`) and the OpenQOS version lives in
+  the os-release content. `scripts/build-packages.sh` reads the required version from
+  the repositories and refuses to publish a package that does not provide it.
+* The whole family is made ineligible, so the only remaining provider is ours:
+  `<ignore name="fedora-release*"/>` and `<ignore name="generic-release*"/>`. KIWI
+  converts these to dnf's exclude option, which accepts a glob. Because `<ignore>` is
+  read per packages **section type** and not per profile, the same rule is needed in
+  the `bootstrap` section (`kiwi/OpenQOS.kiwi`) as well as the `image` section
   ([`kiwi/openqos/base.xml`](../kiwi/openqos/base.xml)) — the bootstrap transaction
-  installs a flavour via `filesystem` → `basesystem` → `fedora-release`, before any
-  image package is considered.
+  installs the family via `filesystem` → `setup` → `system-release`, before any image
+  package is considered.
+* The glob covers the family rather than naming three packages, because the family
+  serves three requirements and satisfying one of them is not enough. Between them,
+  `fedora-release`, the `<flavour>` packages and the `-identity-<flavour>` packages
+  own `/etc/system-release`, `/etc/fedora-release`, `/etc/redhat-release` and
+  `/usr/lib/os-release`.
+* `generic-release` is Fedora's unbranded counterpart and provides the same
+  capabilities, including `fedora-release-identity`, owning `/usr/lib/os-release` as
+  its only file. Excluding only the branded package hands the work to it rather than
+  removing it. This is the same trap as `fedora-logos` and `generic-logos`, and the
+  first attempt at this change hit both. The visible result of getting it right is
+  that `/etc/system-release`, `/etc/fedora-release` and `/etc/redhat-release` do not
+  exist in an OpenQOS image: each named Fedora, and nothing reads them for anything
+  but `cat`. An earlier revision of this document kept them deliberately, "truthful
+  about the base"; that was reversed because a file named `fedora-release` is a claim
+  about what the system is, not merely a record of what it was built from.
 
 Obsoleting a single flavour is the intuitive approach and does not work: it removes
 one candidate out of 61, so dnf picks another and the conflict reappears under a
