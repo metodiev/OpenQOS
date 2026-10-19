@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Unprivileged entry point for the Hybrid App Manager.
+#
+# The application's private Python tree is installed under /usr/lib/openqos-hybrid
+# rather than site-packages so it cannot collide with a distribution Python
+# package. -P keeps the current directory out of sys.path and -s ignores the
+# user-site directory; PYTHONPATH is set explicitly and not inherited.
+PYTHONPATH=/usr/lib/openqos-hybrid
+export PYTHONPATH
+exec /usr/bin/python3 -P -s -m openqos_hybrid "$@"

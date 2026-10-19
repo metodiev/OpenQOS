@@ -1,0 +1,10 @@
+#!/usr/bin/python3
+"""Root helper entry point. Installed as /usr/libexec/openqos/openqos-hybrid-helper."""
+
+import sys
+
+sys.path.insert(0, "/usr/lib/openqos-hybrid")
+
+from openqos_hybrid.helper import main
+
+raise SystemExit(main())
